@@ -293,7 +293,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 //# sourceMappingURL=signature_pad.umd.min.js.map
 
 </script>
-<script type="text/js-worker" id="pdfjsWorker">
+<script id="pdfjsWorker">
 /**
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
@@ -331,7 +331,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Es verlaesst nie ein Datum das Geraet – alles laeuft im Browser.
    ===================================================================== */
 
-const VERSION = "1.4.0";
+const VERSION = "1.4.1";
 const PDF_PFAD = "../pdf/";           // relativ zu app/index.html
 const DATEIEN_UEBERSPRINGEN = ["00_Gesamtsatz_Tagespflege_ausfuellbar.pdf"];
 
@@ -954,10 +954,9 @@ async function start() {
   // pdf.js-Worker: im Single-File als Blob (#pdfjsWorker), sonst aus vendor/
   if (window.pdfjsLib) {
     try {
-      const wel = document.getElementById("pdfjsWorker");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = wel
-        ? URL.createObjectURL(new Blob([wel.textContent], { type: "application/javascript" }))
-        : "vendor/pdf.worker.min.js";
+      // Single-File: Worker-Code wurde als Skript ausgeführt -> window.pdfjsWorker vorhanden -> Hauptthread (kein Blob/Netz).
+      // Dev (app/ über Webserver): Worker-Datei aus vendor/.
+      pdfjsLib.GlobalWorkerOptions.workerSrc = window.pdfjsWorker ? "" : "vendor/pdf.worker.min.js";
     } catch (e) {}
   }
 
