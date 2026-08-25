@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.6.0 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.6.1 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -751,16 +751,20 @@ function ang3Block(){
   const i=el('input');i.type='text';i.placeholder=ph||'';i.value=state.text[key]||'';
   i.addEventListener('input',()=>{state.text[key]=i.value;if(callback)callback();});
   f.appendChild(i);return f;}
+ const hn=state.szenario==='hausnotruf'; // HN-Stammdatenblatt hat zwei Telefonfelder je Bezugsperson
  // Person 1 – Hauptkontakt (volle Felder)
  const c1=el('div','hn-kont');c1.appendChild(Object.assign(el('div','hn-kont-head'),{textContent:'Person 1 · Hauptkontakt'}));
- [['ang_name','Name','Nachname, Vorname',refreshClient],['ang_beziehung','Beziehung','z. B. Tochter'],
-  ['ang_telefon','Telefon'],['ang_strasse','Straße'],['ang_plz_ort','PLZ und Ort'],['ang_email','E-Mail']]
-  .forEach(([k,l,ph,cb])=>c1.appendChild(inp(k,l,ph,cb)));
+ const p1=[['ang_name','Name','Nachname, Vorname',refreshClient],['ang_beziehung','Beziehung','z. B. Tochter'],
+  ['ang_telefon',hn?'Telefon 1':'Telefon']];
+ if(hn)p1.push(['ang_telefon2','Telefon 2']);
+ p1.push(['ang_strasse','Straße'],['ang_plz_ort','PLZ und Ort'],['ang_email','E-Mail']);
+ p1.forEach(([k,l,ph,cb])=>c1.appendChild(inp(k,l,ph,cb)));
  grid.appendChild(c1);
  // Personen 2 & 3 – kompakt
- [[2,'ang2_name','ang2_bez','ang2_tel','ang2_anschrift'],[3,'ang3_name','ang3_bez','ang3_tel',null]].forEach(([n,kN,kB,kT,kA])=>{
+ [[2,'ang2_name','ang2_bez','ang2_tel','ang2_tel2','ang2_anschrift'],[3,'ang3_name','ang3_bez','ang3_tel','ang3_tel2',null]].forEach(([n,kN,kB,kT,kT2,kA])=>{
   const col=el('div','hn-kont');col.appendChild(Object.assign(el('div','hn-kont-head'),{textContent:'Person '+n}));
-  const flds=[[kN,'Name','Nachname, Vorname'],[kB,'Beziehung','z. B. Sohn'],[kT,'Telefon']];
+  const flds=[[kN,'Name','Nachname, Vorname'],[kB,'Beziehung','z. B. Sohn'],[kT,hn?'Telefon 1':'Telefon']];
+  if(hn)flds.push([kT2,'Telefon 2']);
   if(kA)flds.push([kA,'Anschrift','Straße, PLZ Ort']);
   flds.forEach(([k,l,ph])=>col.appendChild(inp(k,l,ph)));
   grid.appendChild(col);});
@@ -1362,10 +1366,10 @@ function fillSample(){
   abr_versicherungsnr:'A123456789',abr_kostentraeger:'AOK Bayern',abr_hausarzt:'Dr. med. Hans Huber',
   abr_hausarzt_strasse:'Marktplatz 5',abr_hausarzt_plz_ort:'84364 Bad Birnbach',abr_hausarzt_tel1:'08563 9876',abr_hausarzt_tel2:'',
   abr_apotheke:'Rottal-Apotheke, Bad Birnbach',abr_pflegegrad_seit:'01.01.2025',pflegegrad:'3',ort:'Bad Birnbach',
-  ang_name:'Mustermann, Thomas',ang_beziehung:'Sohn',ang_telefon:'0151 23456789',
+  ang_name:'Mustermann, Thomas',ang_beziehung:'Sohn',ang_telefon:'0151 23456789',ang_telefon2:'08561 112233',
   ang_strasse:'Beispielweg 7',ang_plz_ort:'84364 Bad Birnbach',ang_email:'thomas.mustermann@example.de',
-  ang2_name:'Schmidt, Maria',ang2_bez:'Tochter',ang2_tel:'0170 98765432',
-  ang3_name:'Huber, Peter',ang3_bez:'Nachbar',ang3_tel:'08563 4567',
+  ang2_name:'Schmidt, Maria',ang2_bez:'Tochter',ang2_tel:'0170 98765432',ang2_tel2:'',
+  ang3_name:'Huber, Peter',ang3_bez:'Nachbar',ang3_tel:'08563 4567',ang3_tel2:'',
   erster_pflegeeinsatz:'01.07.2026',tourhinweis:'Schlüssel im Tresor (Code 1234), Hund „Bello" im Garten.',
   herkunft_vermittler:'Klinikum Passau, Sozialdienst',
   pflegediagnosen:'Diabetes mellitus Typ 2, art. Hypertonie, Z. n. Sturz 02/2026.',
@@ -1790,11 +1794,11 @@ async function buildHnStamm(){
   Hausarzt_Strasse:t.abr_hausarzt_strasse||'', Hausarzt_Telefon_1:t.abr_hausarzt_tel1||'', Hausarzt_PLZ_Ort:t.abr_hausarzt_plz_ort||'', Hausarzt_Telefon_2:t.abr_hausarzt_tel2||'',
   Bezugsperson1_Name_Vorname:t.ang_name||'', Bezugsperson1_Verhaeltnis:t.ang_beziehung||'',
   Bezugsperson1_Strasse:t.ang_strasse||'', Bezugsperson1_Telefon_1:t.ang_telefon||'',
-  Bezugsperson1_PLZ_Ort:t.ang_plz_ort||'', Bezugsperson1_Telefon_2:'',
+  Bezugsperson1_PLZ_Ort:t.ang_plz_ort||'', Bezugsperson1_Telefon_2:t.ang_telefon2||'',
   Bezugsperson2_Name_Vorname:t.ang2_name||'', Bezugsperson2_Verhaeltnis:t.ang2_bez||'',
-  Bezugsperson2_Strasse:'', Bezugsperson2_Telefon_1:t.ang2_tel||'', Bezugsperson2_PLZ_Ort:'', Bezugsperson2_Telefon_2:'',
+  Bezugsperson2_Strasse:'', Bezugsperson2_Telefon_1:t.ang2_tel||'', Bezugsperson2_PLZ_Ort:'', Bezugsperson2_Telefon_2:t.ang2_tel2||'',
   Bezugsperson3_Name_Vorname:t.ang3_name||'', Bezugsperson3_Verhaeltnis:t.ang3_bez||'',
-  Bezugsperson3_Strasse:'', Bezugsperson3_Telefon_1:t.ang3_tel||'', Bezugsperson3_PLZ_Ort:'', Bezugsperson3_Telefon_2:'',
+  Bezugsperson3_Strasse:'', Bezugsperson3_Telefon_1:t.ang3_tel||'', Bezugsperson3_PLZ_Ort:'', Bezugsperson3_Telefon_2:t.ang3_tel2||'',
   Daten_erfasst_am:t.hn_erfasst_am||today, Daten_erfasst_durch:''  /* Linie bleibt frei für die MA-Unterschrift */
  };
  Object.entries(TX).forEach(([fn,val])=>{try{const f=form.getTextField(fn);

@@ -472,6 +472,26 @@
         padding:6px 8px;
       }
     }
+    /* ===== Update-Hinweis (Was ist neu?) ===== */
+    .mv-modal-ov{position:fixed;inset:0;z-index:1000;background:rgba(10,35,61,.55);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .18s ease;}
+    .mv-modal-ov.show{opacity:1;pointer-events:auto;}
+    .mv-modal{background:#fff;width:min(560px,100%);max-height:88dvh;overflow:auto;border-radius:24px;box-shadow:0 30px 80px rgba(10,35,61,.42);border:1px solid rgba(255,255,255,.8);transform:translateY(10px) scale(.98);transition:transform .18s ease;}
+    .mv-modal-ov.show .mv-modal{transform:none;}
+    .mv-modal-head{padding:22px 24px 17px;background:linear-gradient(135deg,var(--navy-dark),var(--navy));color:#fff;}
+    .mv-modal-head h3{margin:0;font-size:21px;letter-spacing:-.02em;}
+    .mv-ver{margin-top:8px;display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.04em;color:#0a233d;background:var(--yellow);padding:4px 11px;border-radius:999px;}
+    .mv-modal-body{padding:18px 24px 6px;}
+    .mv-modal-intro{margin:0 0 15px;color:var(--muted);font-size:13.5px;line-height:1.45;}
+    .mv-sec{margin:0 0 14px;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+    .mv-sec-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--blue-pale);font-weight:800;color:var(--navy-dark);font-size:14px;}
+    .mv-sec-h .mv-ico{font-size:18px;}
+    .mv-sec ul{margin:0;padding:12px 18px 13px 34px;}
+    .mv-sec li{margin:0 0 6px;color:#41576b;font-size:13.5px;line-height:1.45;}
+    .mv-sec li:last-child{margin-bottom:0;}
+    .mv-modal-foot{padding:4px 24px 22px;display:flex;justify-content:flex-end;}
+    .mv-btn{border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:14.5px;color:#fff;background:linear-gradient(135deg,var(--blue-deep),var(--blue));padding:12px 24px;border-radius:14px;box-shadow:0 10px 22px rgba(10,35,61,.18);}
+    .mv-btn:hover{filter:brightness(1.05);}
+    .mv-whatsnew{cursor:pointer;color:#8795a2;text-decoration:underline;text-underline-offset:2px;}
   </style>
 </head>
 
@@ -557,8 +577,65 @@
 
     </section>
 
-    <footer>MediVital · Interne Anwendung</footer>
+    <footer>MediVital · Interne Anwendung &nbsp;·&nbsp; <span class="mv-whatsnew" id="mvWhatsNew">Was ist neu?</span></footer>
 
   </main>
+
+  <script>
+  /* =====================================================================
+     UPDATE-HINWEIS – so pflegst du ihn bei jedem Repo-Update:
+     1) "version" ändern (z. B. das Datum). NUR wenn sich diese Zeichenkette
+        ändert, sehen die MA den Hinweis beim nächsten Öffnen automatisch.
+     2) Bei den betroffenen Bereichen die "items" (Stichpunkte) anpassen.
+        Ein Bereich mit leeren "items" wird nicht angezeigt.
+     Der Hinweis erscheint pro Gerät/Browser genau einmal je "version".
+     Über "Was ist neu?" in der Fußzeile kann man ihn jederzeit erneut öffnen.
+     ===================================================================== */
+  const UPDATE_INFO = {
+    version: "2026-08-25",
+    title: "Was ist neu?",
+    intro: "Kurzer Überblick über die letzten Aktualisierungen der Aufnahme-App.",
+    sections: [
+      { icon:"🏠", area:"Ambulanter Dienst · Sozialstation", items:[
+        "Hausnotruf-Setup übersichtlich in nummerierte Karten gegliedert.",
+        "Neue Hausarzt-Felder (Adresse & Telefon) im Stammdatenblatt.",
+        "Zwei Telefonnummern je Bezugsperson erfassbar.",
+        "SEPA-Gebühren mit Beträgen (19,90 € / 27,00 €) und internem Hinweis.",
+        "Handlungsempfehlung Quartalstest jetzt als sauberes 1-Seiten-Dokument.",
+        "„Eingaben zurücksetzen“ mit Sicherheitsabfrage.",
+        "Einheitlicheres Design der Eingabemaske."
+      ]},
+      { icon:"☀️", area:"Tagespflege", items:[
+        "Besuchszeiten vereinfacht: nur noch die Tage anhaken (feste Zeit 08:00–16:30)."
+      ]}
+    ]
+  };
+
+  (function(){
+    const KEY='mv_update_seen';
+    const secs=(UPDATE_INFO.sections||[]).filter(function(s){return s.items&&s.items.length;});
+    function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    const ov=document.createElement('div');ov.className='mv-modal-ov';
+    ov.innerHTML=
+      '<div class="mv-modal" role="dialog" aria-modal="true" aria-label="'+esc(UPDATE_INFO.title||'Was ist neu?')+'">'
+      +'<div class="mv-modal-head"><h3>✨ '+esc(UPDATE_INFO.title||'Was ist neu?')+'</h3>'
+      +(UPDATE_INFO.version?'<span class="mv-ver">Stand: '+esc(UPDATE_INFO.version)+'</span>':'')+'</div>'
+      +'<div class="mv-modal-body">'
+      +(UPDATE_INFO.intro?'<p class="mv-modal-intro">'+esc(UPDATE_INFO.intro)+'</p>':'')
+      +secs.map(function(s){return '<div class="mv-sec"><div class="mv-sec-h"><span class="mv-ico">'+esc(s.icon||'•')+'</span>'+esc(s.area)+'</div><ul>'+s.items.map(function(i){return '<li>'+esc(i)+'</li>';}).join('')+'</ul></div>';}).join('')
+      +'</div>'
+      +'<div class="mv-modal-foot"><button class="mv-btn" id="mvUpdateOk">Verstanden</button></div>'
+      +'</div>';
+    document.body.appendChild(ov);
+    function open(){ov.classList.add('show');}
+    function close(markSeen){ov.classList.remove('show');if(markSeen){try{localStorage.setItem(KEY,UPDATE_INFO.version);}catch(e){}}}
+    ov.querySelector('#mvUpdateOk').addEventListener('click',function(){close(true);});
+    ov.addEventListener('click',function(e){if(e.target===ov)close(true);});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'&&ov.classList.contains('show'))close(true);});
+    var wn=document.getElementById('mvWhatsNew');if(wn)wn.addEventListener('click',open);
+    var seen=null;try{seen=localStorage.getItem(KEY);}catch(e){}
+    if(UPDATE_INFO.version && seen!==UPDATE_INFO.version && secs.length){ setTimeout(open,350); }
+  })();
+  </script>
 </body>
 </html>
