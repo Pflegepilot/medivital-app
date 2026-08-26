@@ -588,11 +588,14 @@
         ändert, sehen die MA den Hinweis beim nächsten Öffnen automatisch.
      2) Bei den betroffenen Bereichen die "items" (Stichpunkte) anpassen.
         Ein Bereich mit leeren "items" wird nicht angezeigt.
-     Der Hinweis erscheint pro Gerät/Browser genau einmal je "version".
+     Der Hinweis erscheint pro Gerät/Browser genau einmal je "version"
+     (nach "Verstanden" nicht mehr) und verschwindet automatisch, sobald das
+     "version"-Datum älter als "maxTageSichtbar" Tage ist – auch ohne Klick.
      Über "Was ist neu?" in der Fußzeile kann man ihn jederzeit erneut öffnen.
      ===================================================================== */
   const UPDATE_INFO = {
-    version: "2026-08-25",
+    version: "2026-08-26",
+    maxTageSichtbar: 21,
     title: "Was ist neu?",
     intro: "Kurzer Überblick über die letzten Aktualisierungen der Aufnahme-App.",
     sections: [
@@ -609,7 +612,13 @@
         "Besuchszeiten vereinfacht: nur noch die Tage anhaken (feste Zeit 08:00–16:30).",
         "Neuer Kostenvoranschlag-Rechner (Eigenanteil) – KVA-PDF im Layout der Excel-Vorlage.",
         "Pflegegrad als Auswahl; im Kostenvoranschlag für Hochrechnungen frei änderbar.",
-        "Unterschriften-Durchgang zeigt jetzt das komplette Dokument (alle Seiten)."
+        "Kostenvoranschlag steht in der Dokumentenliste und wird mitunterschrieben.",
+        "Unterschriften-Durchgang zeigt jetzt das komplette Dokument (alle Seiten).",
+        "Unterschriften erscheinen jetzt direkt in der PDF-Vorschau.",
+        "Neues Stammblatt: automatisch befüllt, alle Felder ergänzbar (Seite 2 ausklappbar), Klientenbild einfügbar.",
+        "Einheitlicheres Design – optisch an die Sozialstation angeglichen.",
+        "Auswahl-Dropdowns (Familienstand, Konfession, Staatsangehörigkeit); Klientenbild bleibt im Entwurf gespeichert.",
+        "Klientenbild lässt sich auch nachträglich in eine fertige Stammblatt-PDF einsetzen."
       ]}
     ]
   };
@@ -636,8 +645,16 @@
     ov.addEventListener('click',function(e){if(e.target===ov)close(true);});
     document.addEventListener('keydown',function(e){if(e.key==='Escape'&&ov.classList.contains('show'))close(true);});
     var wn=document.getElementById('mvWhatsNew');if(wn)wn.addEventListener('click',open);
+    // Auto-Ablauf: nicht mehr automatisch zeigen, wenn das Versionsdatum zu alt ist
+    function nochAktuell(){
+      var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(UPDATE_INFO.version||'');
+      if(!m) return true;                       // keine Datums-Version -> kein Ablauf
+      var d=new Date(+m[1],+m[2]-1,+m[3]);
+      var tage=(Date.now()-d.getTime())/86400000;
+      return tage <= (UPDATE_INFO.maxTageSichtbar||21);
+    }
     var seen=null;try{seen=localStorage.getItem(KEY);}catch(e){}
-    if(UPDATE_INFO.version && seen!==UPDATE_INFO.version && secs.length){ setTimeout(open,350); }
+    if(UPDATE_INFO.version && seen!==UPDATE_INFO.version && secs.length && nochAktuell()){ setTimeout(open,350); }
   })();
   </script>
 </body>
