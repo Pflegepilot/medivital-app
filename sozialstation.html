@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.6.2 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.7.1 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -643,7 +643,10 @@ const PRIVAT=[
 function docEnabled(id){
  const sz=state.szenario;
  if(sz==='vhp')return id==='verhinderungspflege';
- if(sz==='hausnotruf')return id.startsWith('hn_');
+ if(sz==='hausnotruf'){ // im Hausnotruf-Setup zusaetzlich Privatleistungen-Vereinbarung (Unterschrift) und Preisliste (Klient-Info)
+  if(id==='leistungsvereinbarung')return state.privat&&state.privat.length>0;
+  if(id==='preisliste')return state.privat&&state.privat.length>0;
+  return id.startsWith('hn_');}
  if(sz==='beratung')return id==='bv_nachweis';
  if(id==='hn_schlue')return !!state.schluesselEnabled; // Schlüsselprotokoll auch regulär, wenn im Assistenten angehakt
  if(id.startsWith('hn_'))return false; // HN-Unterlagen nur im Hausnotruf-Setup (oben behandelt)
@@ -655,13 +658,13 @@ function docEnabled(id){
  return true;}
 function refreshSignatures(){const sec=document.getElementById('sigSection');if(!sec)return;
  const body=sec.querySelector('.body');if(!body)return;body.innerHTML='';body.appendChild(signatureBlock());}
-function privatBlock(){const box=el('div');
+function privatBlock(nurNrn){const box=el('div');   // nurNrn: optional Array von Nr-Strings, dann nur diese Positionen anzeigen
  box.appendChild(el('div','csub','Privatleistungen auswählen (Stand 01.04.2026)'));
  const wrap=el('div','ptab-wrap');
  const tab=el('table','ptab');
  tab.innerHTML='<thead><tr><th style="width:34px"></th><th style="width:52px">Nr.</th><th>Leistung</th><th>Abrechnung</th><th style="text-align:right">Preis</th></tr></thead>';
  const tb=el('tbody');
- PRIVAT.forEach(p=>{
+ (nurNrn?PRIVAT.filter(p=>nurNrn.includes(p.nr)):PRIVAT).forEach(p=>{
   const tr=el('tr');if(state.privat.includes(p.k))tr.className='sel';
   const cb=el('input');cb.type='checkbox';cb.checked=state.privat.includes(p.k);
   const sync=()=>{const i=state.privat.indexOf(p.k);if(cb.checked){if(i<0)state.privat.push(p.k);}else if(i>=0)state.privat.splice(i,1);tr.className=cb.checked?'sel':'';renderDocs();refreshSignatures();renderPrivatSummary();};
@@ -825,7 +828,9 @@ function render(){form.innerHTML='';
   else if(s.t==='signature'){return;}
   else{const row=el('div','row');s.fields.filter(f=>!(f.hideSz&&f.hideSz.includes(state.szenario))).forEach(f=>{if(f.t==='time4')row.appendChild(timeBlock());else if(f.t==='pflegegrad')row.appendChild(pgField(f));else row.appendChild(textField(f));});body.appendChild(row);}
   sec.appendChild(body);form.appendChild(sec);});
- if(state.szenario==='hausnotruf'){const s=el('section','block');const h=el('div','head');h.appendChild(el('div','num','HN'));h.appendChild(el('h2',null,'Hausnotruf-Konfiguration'));h.appendChild(el('div','ctx','Geräte-, Gesundheits- & Vertragsdaten'));s.appendChild(h);const b=el('div','body');b.appendChild(hausnotrufBlock());s.appendChild(b);form.appendChild(s);}
+ if(state.szenario==='hausnotruf'){const s=el('section','block');const h=el('div','head');h.appendChild(el('div','num','HN'));h.appendChild(el('h2',null,'Hausnotruf-Konfiguration'));h.appendChild(el('div','ctx','Geräte-, Gesundheits- & Vertragsdaten'));s.appendChild(h);const b=el('div','body');b.appendChild(hausnotrufBlock());s.appendChild(b);form.appendChild(s);
+  // Privatleistungen (nur Nr. 1+2 = Hausnotruf-Positionen): Vereinbarung mit Unterschrift + Preisliste (Klient-Info)
+  const sp=el('section','block');const hp=el('div','head');hp.appendChild(el('div','num','PL'));hp.appendChild(el('h2',null,'Nachweise für Privatleistungen'));hp.appendChild(el('div','ctx','Vereinbarung Privatleistungen (mit Unterschrift) & Preisliste'));sp.appendChild(hp);const bp=el('div','body');bp.appendChild(privatBlock(['1','2']));sp.appendChild(bp);form.appendChild(sp);}
  if(state.schluesselEnabled&&state.szenario!=='hausnotruf'){const s=el('section','block');const h=el('div','head');h.appendChild(el('div','num','🔑'));h.appendChild(el('h2',null,'Schlüsselprotokoll'));h.appendChild(el('div','ctx','Übergabe & Rückgabe'));s.appendChild(h);const b=el('div','body');b.appendChild(schluesselBlock());s.appendChild(b);form.appendChild(s);}
  if(state.beratungEnabled||state.szenario==='beratung'){const s=el('section','block');const h=el('div','head');h.appendChild(el('div','num','BV'));h.appendChild(el('h2',null,'Beratungsbesuch (§ 37.3)'));h.appendChild(el('div','ctx','Nachweis Beratungseinsatz § 37.3'));s.appendChild(h);const b=el('div','body');b.appendChild(beratungsBlock());s.appendChild(b);form.appendChild(s);}
  const walkBtn=el('button','btn primary big');walkBtn.id='startWalkBottom';walkBtn.textContent='▶ Aufnahme-Durchgang starten';walkBtn.style.cssText='width:100%;margin-bottom:14px;';walkBtn.addEventListener('click',()=>document.getElementById('startWalk').click());
@@ -1197,6 +1202,13 @@ async function buildExportZip(){
     if(!HN_BUILD[d.id])continue;
     const hp=await HN_BUILD[d.id]();
     hnFolder.file(String(hi).padStart(2,'0')+'_'+d.title.replace(/[\/\\:*?"<>|]/g,'_')+'.pdf',await hp.save());hi++;
+   }
+   // Privatleistungen: Vereinbarung (Seite 23, mit Unterschrift) + Preisliste (A4 quer, nur Klient-Info)
+   if(state.privat&&state.privat.length){
+    const vp=await PDFDocument.create();const [vpage]=await vp.copyPages(full,[22]);vp.addPage(vpage);
+    hnFolder.file(String(hi).padStart(2,'0')+'_Vereinbarung_Privatleistungen.pdf',await vp.save());hi++;
+    const pl=await buildPreisliste();
+    hnFolder.file(String(hi).padStart(2,'0')+'_Preisliste_Privatleistungen_Klient-Info.pdf',await pl.save());hi++;
    }
    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
    return{blob,name:pn+'.zip',label:'Hausnotruf'};
@@ -2146,6 +2158,8 @@ function hausnotrufBlock(){
 // ===== BERATUNGSNACHWEIS §37.3 =====
 (function(){
  CONFIG.docs.push({id:'bv_nachweis',title:'Nachweis Beratungseinsatz (§ 37.3 SGB XI)',src:'bv_nachweis',pages:[],signers:['klient','mv']});
+ // Privatleistungen (Vereinbarung + Preisliste) ans Ende: erscheinen in Dokumentenliste UND Unterschriften-Durchgang ganz zuletzt
+ ['leistungsvereinbarung','preisliste'].forEach(function(id){const i=CONFIG.docs.findIndex(function(d){return d.id===id;});if(i>=0)CONFIG.docs.push(CONFIG.docs.splice(i,1)[0]);});
  if(!CONFIG.profiles.beratung)CONFIG.profiles.beratung=[];
  CONFIG.profiles.beratung.push('bv_nachweis');
 })();
