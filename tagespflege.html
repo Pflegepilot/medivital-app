@@ -75,6 +75,9 @@
  .btn.primary{background:var(--blue);color:#fff}.btn.primary:hover{background:var(--blue-700)}
  .btn.ghost{background:#f3f6fa;color:var(--blue-700);border:1px solid var(--line)}.btn.ghost:hover{background:#e9eff6}
  .btn.link{background:none;color:var(--muted);font-weight:600;padding:4px}
+ .btn.big{font-size:15.5px;padding:14px 16px}
+ .btn.gold{background:var(--gold);color:#3a2b07}.btn.gold:hover{filter:brightness(.97)}
+ .btn.green{background:#1a6e3c;color:#fff}.btn.green:hover{background:#155730}
  .btn:disabled{opacity:.55;cursor:default}
  .btn:focus-visible{outline:3px solid #9cc0e6;outline-offset:2px}
 
@@ -89,6 +92,10 @@
  .block>.body{padding:18px 20px}
  .csub{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:14px 0 4px}
  .csub:first-child{margin-top:0}
+ .subcard{border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:0 0 14px;background:#fff}
+ .subcard>.subcard-h{background:#f4f7fb;padding:9px 14px;font-weight:800;font-size:12.5px;color:var(--blue-700);border-bottom:1px solid var(--line)}
+ .subcard>.subcard-b{padding:13px 14px}
+ .subhead{font-weight:800;color:var(--blue-700);font-size:14px;margin:6px 0 8px}
  .row{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 16px}
  .field{display:flex;flex-direction:column;gap:5px}.field.wide{grid-column:1/-1}
  label{font-size:12.5px;font-weight:650;color:var(--muted)}
@@ -174,8 +181,8 @@
     <div id="docList"></div>
    </div>
    <div class="card actions">
-    <button type="button" class="btn primary" id="durchgang">&#9997; Unterschriften-Durchgang</button>
-    <button type="button" class="btn ghost" id="erzeugen">Alle Unterlagen erzeugen</button>
+    <button type="button" class="btn gold big" id="durchgang">&#9997; Unterschriften-Durchgang starten</button>
+    <button type="button" class="btn green big" id="erzeugen">&#128230; Alle Unterlagen erzeugen</button>
     <button type="button" class="btn ghost" id="entwurfSichern">Entwurf sichern</button>
     <button type="button" class="btn ghost" id="entwurfLaden">Entwurf laden</button>
     <button type="button" class="btn link" id="muster">Musterdaten einf&uuml;llen (Test)</button>
@@ -193,7 +200,7 @@
     <div class="head"><span class="num">&#9997;</span><h2>Unterschriften</h2></div>
     <div class="body">
      <p class="sighint">Starte nach dem Ausf&uuml;llen den Durchgang. Er f&uuml;hrt durch alle zu unterschreibenden Bl&auml;tter; die MA unterschreibt nur dort, wo eine MA-Linie vorgesehen ist (Vertrag &amp; Anpassungsausschluss), der Gast auf allen vorgesehenen Linien.</p>
-     <button type="button" class="btn primary" id="durchgang2" style="width:auto">&#9997; Unterschriften-Durchgang starten</button>
+     <button type="button" class="btn gold" id="durchgang2" style="width:auto">&#9997; Unterschriften-Durchgang starten</button>
     </div>
    </section>
   </main>
@@ -335,7 +342,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Es verlaesst nie ein Datum das Geraet – alles laeuft im Browser.
    ===================================================================== */
 
-const VERSION = "1.12.0";
+const VERSION = "1.13.2";
 const PDF_PFAD = "../pdf/";           // relativ zu app/index.html
 const DATEIEN_UEBERSPRINGEN = ["00_Gesamtsatz_Tagespflege_ausfuellbar.pdf"];
 
@@ -978,8 +985,6 @@ const STAMMBLATT_SPEC = {
       ["sel", "staatsangehoerigkeit", "Staatsangehörigkeit", OPT_STAAT],
       ["sel", "familienstand", "Familienstand", OPT_FAMILIENSTAND],
       ["sel", "konfession", "Konfession", OPT_KONFESSION],
-      ["jn", "Covid-19-Impfung", "covid_impfung_ja", "covid_impfung_nein"],
-      ["tx", "vollst_impfschutz_ab", "Vollständiger Impfschutz ab"],
       ["tx", "wichtige_informationen", "Wichtige Informationen", "wide"],
     ]},
     { titel: "Informationen zur Tagespflege", felder: [
@@ -1131,37 +1136,40 @@ function baueStammblattFelder(body) {
   const ckLabel = (feld, label) => { const l = mk("label", "chk"); const c = mk("input"); c.type = "checkbox"; c.dataset.feld = feld; l.appendChild(c); l.appendChild(mk("span", null, label)); return l; };
   const jn = (label, ja, nein) => { const f = mk("div", "field"); f.appendChild(mk("label", null, label)); const w = mk("div"); w.style.cssText = "display:flex;gap:18px;align-items:center;padding-top:5px;"; w.appendChild(ckLabel(ja, "ja")); w.appendChild(ckLabel(nein, "nein")); f.appendChild(w); return f; };
   const tageField = (label, pre) => { const f = mk("div", "field wide"); f.appendChild(mk("label", null, label)); const w = mk("div"); w.style.cssText = "display:flex;gap:14px;flex-wrap:wrap;padding-top:5px;"; ["mo","di","mi","do","fr","sa"].forEach((d, i) => w.appendChild(ckLabel(pre + "_" + d, ["Mo","Di","Mi","Do","Fr","Sa"][i]))); f.appendChild(w); return f; };
-  const subH = (txt) => mk("div", "csub", txt);   // einheitlicher Unterabschnitts-Stil wie Sozialstation
-
+  // Jede Gruppe als eigene Unter-Karte (Kopfzeile + Feld-Body)
   function renderGroup(container, g) {
-    container.appendChild(subH(g.titel));
+    const card = mk("div", "subcard");
+    card.appendChild(mk("div", "subcard-h", g.titel));
+    const b = mk("div", "subcard-b");
+    card.appendChild(b);
+    container.appendChild(card);
     let row = null, checks = null;
-    const ensureRow = () => { if (!row) { row = mk("div", "row"); container.appendChild(row); } return row; };
-    const ensureChecks = () => { if (!checks) { checks = mk("div", "checks"); checks.style.cssText = "grid-template-columns:repeat(3,1fr);gap:2px 18px;"; container.appendChild(checks); } return checks; };
+    const ensureRow = () => { if (!row) { row = mk("div", "row"); b.appendChild(row); } return row; };
+    const ensureChecks = () => { if (!checks) { checks = mk("div", "checks"); checks.style.cssText = "grid-template-columns:repeat(3,1fr);gap:2px 18px;"; b.appendChild(checks); } return checks; };
     g.felder.forEach((fd) => {
       const t = fd[0];
       if (t === "ck") { ensureChecks().appendChild(ckLabel(fd[1], fd[2])); row = null; }
       else if (t === "tx") { ensureRow().appendChild(tf(fd[1], fd[2], fd[3] === "wide")); checks = null; }
       else if (t === "sel") { ensureRow().appendChild(sel(fd[1], fd[2], fd[3], fd[4] === "wide")); checks = null; }
       else if (t === "jn") { ensureRow().appendChild(jn(fd[1], fd[2], fd[3])); checks = null; }
-      else if (t === "tage") { row = null; checks = null; container.appendChild(tageField(fd[1], fd[2])); }
-      else if (t === "cktext") { row = null; checks = null; const f = mk("div", "field wide"); const top = mk("div"); top.style.cssText = "display:flex;gap:10px;align-items:center;"; top.appendChild(ckLabel(fd[1], fd[3])); const i = mk("input"); i.type = "text"; i.dataset.feld = fd[2]; i.placeholder = "Text"; i.style.flex = "1"; top.appendChild(i); f.appendChild(top); container.appendChild(f); }
+      else if (t === "tage") { row = null; checks = null; b.appendChild(tageField(fd[1], fd[2])); }
+      else if (t === "cktext") { row = null; checks = null; const f = mk("div", "field wide"); const top = mk("div"); top.style.cssText = "display:flex;gap:10px;align-items:center;"; top.appendChild(ckLabel(fd[1], fd[3])); const i = mk("input"); i.type = "text"; i.dataset.feld = fd[2]; i.placeholder = "Text"; i.style.flex = "1"; top.appendChild(i); f.appendChild(top); b.appendChild(f); }
       else if (t === "ckdatum") { checks = null; const f = mk("div", "field"); const top = mk("div"); top.style.cssText = "display:flex;gap:10px;align-items:center;"; top.appendChild(ckLabel(fd[1], fd[3])); const i = mk("input"); i.type = "date"; i.dataset.feld = fd[2]; top.appendChild(i); f.appendChild(top); ensureRow().appendChild(f); }
     });
   }
 
   const s1 = mk("div");
-  s1.appendChild(Object.assign(mk("div", null, "Seite 1 – Zusatzangaben"), { style: "font-weight:800;color:#0e2f4f;margin:6px 0 2px;font-size:14px;" }));
+  s1.appendChild(mk("div", "subhead", "Seite 1 – Zusatzangaben"));
   STAMMBLATT_SPEC.seite1.forEach((g) => renderGroup(s1, g));
   body.appendChild(s1);
 
   const det = mk("details");
-  det.style.cssText = "margin-top:16px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;";
+  det.style.cssText = "margin-top:16px;";
   const sum = mk("summary", null, "Seite 2 – weitere Angaben (bei Bedarf ausklappen)");
-  sum.style.cssText = "cursor:pointer;padding:12px 14px;font-weight:800;color:#0e2f4f;font-size:14px;background:#eef4f7;";
+  sum.style.cssText = "cursor:pointer;padding:11px 14px;font-weight:800;color:var(--blue-700);font-size:14px;background:#eef3fb;border:1px solid var(--line);border-radius:11px;";
   det.appendChild(sum);
   const s2 = mk("div");
-  s2.style.cssText = "padding:6px 14px 14px;";
+  s2.style.cssText = "padding:14px 0 0;";
   STAMMBLATT_SPEC.seite2.forEach((g) => renderGroup(s2, g));
   det.appendChild(s2);
   body.appendChild(det);
