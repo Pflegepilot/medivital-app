@@ -2145,5 +2145,5 @@ async function start() {
 document.addEventListener("DOMContentLoaded", start);
 
 </script>
-</body>
+<script>if('serviceWorker' in navigator&&location.protocol==='https:'){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script></body>
 </html>

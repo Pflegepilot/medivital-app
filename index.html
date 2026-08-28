@@ -682,5 +682,7 @@
     if(UPDATE_INFO.version && seen!==UPDATE_INFO.version && rels.length && nochAktuell()){ setTimeout(open,350); }
   })();
   </script>
+  <script>/* Offline-Faehigkeit via Service Worker – nur auf der HTTPS-Bereitstellung (GitHub Pages), nicht im lokalen http-Test */
+  if('serviceWorker' in navigator&&location.protocol==='https:'){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body>
 </html>
