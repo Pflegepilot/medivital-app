@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.7.2 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.8.3 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -446,7 +446,7 @@ const SECTIONS=[
  {n:"2",title:"Versicherung & Versorgung",shared:true,fields:[
   {k:"abr_versicherungsnr",l:"Versicherungs-Nr."},{k:"abr_kostentraeger",l:"Kostenträger / Kasse"},
   {k:"abr_hausarzt",l:"Hausarzt",hideSz:['hausnotruf']},{k:"abr_apotheke",l:"Apotheke",hideSz:['hausnotruf']},{k:"abr_pflegegrad_seit",l:"Pflegegrad seit"},
-  {t:"pflegegrad",k:"pflegegrad",l:"Pflegegrad"},{k:"ort",l:"Ort (für Unterschriften)"}]},
+  {t:"pflegegrad",k:"pflegegrad",l:"Pflegegrad"},{t:"versicherung",k:"versicherungsart",l:"Versicherung"},{k:"ort",l:"Ort (für Unterschriften)"}]},
  {n:"3",title:"Bezugspersonen",ctx:"Aufnahmeblatt · Anlage 7",t:"ang3"},
  {n:"4",title:"Einsatz & Hinweise",ctx:"Aufnahmeblatt · Seite 1",fields:[
   {t:"time4"},{k:"erster_pflegeeinsatz",l:"Erster Pflegeeinsatz",wide:true},
@@ -479,6 +479,9 @@ function textField(f){const w=el('div','field'+(f.wide?' wide':'')+(f.key?' key'
 function pgField(f){const w=el('div','field');w.appendChild(el('label',null,f.l));const s=el('select');
  ['','Nein','Überleitung','1','2','3','4','5'].forEach(v=>{const o=el('option',null,v===''?'– auswählen –':v);o.value=v;s.appendChild(o);});
  s.value=state.text.pflegegrad||'';s.addEventListener('change',()=>{state.text.pflegegrad=s.value;refreshClient();});w.appendChild(s);return w;}
+function versField(f){const w=el('div','field');w.appendChild(el('label',null,f.l));const s=el('select');
+ [['','– auswählen –'],['gesetzlich','gesetzlich'],['privat','privat']].forEach(([v,tx])=>{const o=el('option',null,tx);o.value=v;s.appendChild(o);});
+ s.value=state.text[f.k]||'';s.addEventListener('change',()=>{state.text[f.k]=s.value;});w.appendChild(s);return w;}
 function timeBlock(){const w=el('div','field wide');w.appendChild(el('label',null,'Besuchszeiten'));const g=el('div','timegrid');
  [["besuch_frueh","früh"],["besuch_mittag","mittag"],["besuch_abend","abend"],["besuch_nacht","nacht"]].forEach(([k,l])=>{
  const c=el('div','field');const lab=el('label',null,l);lab.style.fontWeight='600';const i=el('input');i.type='text';i.placeholder='–';i.value=state.text[k]||'';
@@ -828,7 +831,7 @@ function render(){form.innerHTML='';
   else if(s.t==='ang3')body.appendChild(ang3Block());
   else if(s.t==='extra1')body.appendChild(extra1Block());
   else if(s.t==='signature'){return;}
-  else{const row=el('div','row');s.fields.filter(f=>!(f.hideSz&&f.hideSz.includes(state.szenario))).forEach(f=>{if(f.t==='time4')row.appendChild(timeBlock());else if(f.t==='pflegegrad')row.appendChild(pgField(f));else row.appendChild(textField(f));});body.appendChild(row);}
+  else{const row=el('div','row');s.fields.filter(f=>!(f.hideSz&&f.hideSz.includes(state.szenario))).forEach(f=>{if(f.t==='time4')row.appendChild(timeBlock());else if(f.t==='pflegegrad')row.appendChild(pgField(f));else if(f.t==='versicherung')row.appendChild(versField(f));else row.appendChild(textField(f));});body.appendChild(row);}
   sec.appendChild(body);form.appendChild(sec);});
  if(state.szenario==='hausnotruf'){const s=el('section','block');const h=el('div','head');h.appendChild(el('div','num','HN'));h.appendChild(el('h2',null,'Hausnotruf-Konfiguration'));h.appendChild(el('div','ctx','Geräte-, Gesundheits- & Vertragsdaten'));s.appendChild(h);const b=el('div','body');b.appendChild(hausnotrufBlock());s.appendChild(b);form.appendChild(s);
   // Privatleistungen (nur Nr. 1+2 = Hausnotruf-Positionen): Vereinbarung mit Unterschrift + Preisliste (Klient-Info)
@@ -1832,6 +1835,29 @@ async function buildHnStamm(){
  };
  Object.entries(CB).forEach(([fn,key])=>{try{const f=form.getCheckBox(fn);if(c[key])f.check();else f.uncheck();}catch(e){}});
  try{form.updateFieldAppearances(helv);}catch(e){}
+ // ----- Zusatzzeile "Versicherung | Pflegegrad" in die Luecke unter Geburtsdatum (Teilnehmer-Daten-Tabelle) -----
+ try{
+  const {pushGraphicsState,popGraphicsState,beginText,endText,showText,setFontAndSize,moveText,setFillingColor,PDFString}=PDFLib;
+  const seite=pdf.getPages()[0];const Hs=seite.getHeight();
+  const cols=[71.0,155.9,291.5,375.6,524.0];      // Spaltengrenzen wie in der Tabelle
+  const linie=rgb(0.15,0.16,0.18),tinte=rgb(0.1,0.12,0.16);
+  const anF3=(x,y,txt,size)=>seite.pushOperators(pushGraphicsState(),setFillingColor(tinte),beginText(),setFontAndSize('F3',size),moveText(x,y),showText(PDFString.of(txt)),endText(),popGraphicsState());
+  // 1) Ueberschrift RISIKOFAKTOREN/MEDIKAMENTE verdecken (wird gleich tiefer neu gesetzt) – schafft Platz fuer die volle Zeilenhoehe
+  seite.drawRectangle({x:70,y:Hs-253,width:455,height:13,color:rgb(1,1,1)});
+  // 2) Tabellenzeile in voller Hoehe (wie die uebrigen Zeilen, ~18,7pt): Oberkante 221.3, Unterkante 240
+  const yT=221.3,yB=240.0;
+  seite.drawLine({start:{x:cols[0],y:Hs-yB},end:{x:cols[4],y:Hs-yB},thickness:0.6,color:linie});        // untere Linie
+  cols.forEach(x=>seite.drawLine({start:{x,y:Hs-yT},end:{x,y:Hs-yB},thickness:0.6,color:linie}));         // vertikale Trenner
+  const base=Hs-232.5;
+  anF3(76.6,base,'Versicherung:',11);            // Labels in Arial Narrow Bold (eingebettete Template-Schrift F3)
+  anF3(297.0,base,'Pflegegrad:',11);
+  if(t.versicherungsart)seite.drawText(String(t.versicherungsart),{x:159,y:base,size:10,font:helv,color:tinte});   // Werte in Helvetica wie die uebrigen Formularwerte
+  const pgRaw=t.pflegegrad||'';const pgTxt=/^[1-5]$/.test(pgRaw)?('Pflegegrad '+pgRaw):(pgRaw==='Nein'?'kein Pflegegrad':pgRaw);
+  if(pgTxt)seite.drawText(String(pgTxt),{x:379,y:base,size:10,font:helv,color:tinte});
+  // 3) Ueberschrift ~9pt tiefer neu setzen -> mehr Abstand zur Tabelle, nicht mehr gequetscht (Checkboxen bleiben bei ~265)
+  anF3(70.8,Hs-257,'RISIKOFAKTOREN UND DIAGNOSEN:',11);
+  anF3(389.5,Hs-257,'MEDIKAMENTE:',11);
+ }catch(e){console.error('HN-Stamm Zusatzzeile',e);}
  // ----- Nur MA-/Aufnehmer-Unterschrift auf der "durch:"-Linie (keine Klientenunterschrift) -----
  await hnPlaceSigs(pdf,'hn_stamm',[{page:1, who:'mv', x:350, yTop:765, w:150, h:24}]);
  return pdf;
@@ -2103,6 +2129,7 @@ function hausnotrufBlock(){
  r=row();r.appendChild(tf('Schlüsseltresor Fabrikat','hn_tresor',''));r.appendChild(tf('Code / Kombination','hn_code',''));r.appendChild(tf('Standort','hn_standort','z. B. Eingangstür links'));
  r=row();r.appendChild(tf('Monatlicher Beitrag','hn_beitrag','z. B. 24,90 €'));r.appendChild(tf('Inbetriebnahmedatum','hn_inbet_dat',fmtDate()));
  r=row();r.appendChild(tf('Teilnehmer-Nr.','hn_teilnehmernr',''));r.appendChild(tf('Schlüssel-Nr.','hn_schluessel_nr','z. B. 2 Schlüssel'));
+ // Versicherung & Pflegegrad kommen aus Abschnitt "2 · Versicherung & Versorgung" (nicht mehr hier doppelt)
  // 2 - Gesundheit
  group('2 · Gesundheit','Risikofaktoren & Medikamente (Stammdatenblatt)');
  checksSection('Risikofaktoren & Diagnosen',[

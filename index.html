@@ -488,6 +488,17 @@
     .mv-sec ul{margin:0;padding:12px 18px 13px 34px;}
     .mv-sec li{margin:0 0 6px;color:#41576b;font-size:13.5px;line-height:1.45;}
     .mv-sec li:last-child{margin-bottom:0;}
+    .mv-rel{margin:0 0 10px;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+    .mv-rel>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--blue-pale);font-weight:800;color:var(--navy-dark);font-size:13.5px;}
+    .mv-rel>summary::-webkit-details-marker{display:none;}
+    .mv-rel>summary .mv-chev{margin-left:auto;font-size:12px;color:var(--blue);transition:transform .15s ease;}
+    .mv-rel[open]>summary .mv-chev{transform:rotate(90deg);}
+    .mv-grp-h{display:flex;align-items:center;gap:8px;padding:9px 14px 2px;font-weight:800;color:var(--navy-dark);font-size:12.5px;}
+    .mv-grp-h .mv-ico{font-size:15px;}
+    .mv-grp ul{margin:0;padding:3px 18px 6px 34px;}
+    .mv-grp:last-child ul{padding-bottom:11px;}
+    .mv-grp li{margin:0 0 5px;color:#41576b;font-size:13px;line-height:1.45;}
+    .mv-grp li:last-child{margin-bottom:0;}
     .mv-modal-foot{padding:4px 24px 22px;display:flex;justify-content:flex-end;}
     .mv-btn{border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:14.5px;color:#fff;background:linear-gradient(135deg,var(--blue-deep),var(--blue));padding:12px 24px;border-radius:14px;box-shadow:0 10px 22px rgba(10,35,61,.18);}
     .mv-btn:hover{filter:brightness(1.05);}
@@ -594,44 +605,52 @@
      Über "Was ist neu?" in der Fußzeile kann man ihn jederzeit erneut öffnen.
      ===================================================================== */
   const UPDATE_INFO = {
-    version: "2026-08-27",
+    version: "2026-08-28",
     maxTageSichtbar: 21,
     title: "Was ist neu?",
-    intro: "Kurzer Überblick über die letzten Aktualisierungen der Aufnahme-App.",
-    sections: [
-      { icon:"🏠", area:"Ambulanter Dienst · Sozialstation", items:[
-        "Hausnotruf-Setup übersichtlich in nummerierte Karten gegliedert.",
-        "Neue Hausarzt-Felder (Adresse & Telefon) im Stammdatenblatt.",
-        "Zwei Telefonnummern je Bezugsperson erfassbar.",
-        "SEPA-Gebühren mit Beträgen (19,90 € / 27,00 €) und internem Hinweis.",
-        "Handlungsempfehlung Quartalstest jetzt als sauberes 1-Seiten-Dokument.",
-        "„Eingaben zurücksetzen“ mit Sicherheitsabfrage.",
-        "Einheitlicheres Design der Eingabemaske.",
-        "Start der Aufnahme: kein kurzes Aufblitzen mehr vor dem Assistenten.",
-        "Hausnotruf-Setup: neue Nachweise für Privatleistungen (Positionen 1+2, fest vorausgewählt) – Vereinbarung wird mitunterschrieben, Preisliste (A4 quer) liegt als Klient-Info bei."
+    intro: "Änderungen je Version – zum Aufklappen. Die neueste ist offen, ältere bei Bedarf antippen.",
+    // Releases: neueste zuerst; nur das erste ist offen (offen:true). Pro Release Untergruppen je Bereich
+    // (Sozialstation 🏠 / Tagespflege ☀️ / Hausnotruf 🆘) – jeweils nur, wenn es dort etwas Neues gibt.
+    releases: [
+      { titel:"28.08.2026", offen:true, gruppen:[
+        { area:"Sozialstation", icon:"🏠", items:[
+          "Versicherung (gesetzlich/privat) als Dropdown im Abschnitt „Versicherung & Versorgung“."
+        ]},
+        { area:"Tagespflege", icon:"☀️", items:[
+          "ZIP-Export: Tagespflege als Einzeldateien, der Klient bekommt genau eine Gesamt-PDF.",
+          "Vertrag: Gastdaten stehen sauber im Kundenkasten (statt leerer Linien).",
+          "Neue Checkliste Patientenaufnahme: editierbar, automatisch befüllt, mitgeneriert."
+        ]},
+        { area:"Hausnotruf", icon:"🆘", items:[
+          "Stammdatenblatt: neue Zeile „Versicherung“ (gesetzlich/privat) und „Pflegegrad“.",
+          "Nachweise für Privatleistungen: „Vereinbarung Privatleistungen“ (mit Unterschrift) und Preisliste (Klient-Info)."
+        ]}
       ]},
-      { icon:"☀️", area:"Tagespflege", items:[
-        "Besuchszeiten vereinfacht: nur noch die Tage anhaken (feste Zeit 08:00–16:30).",
-        "Neuer Kostenvoranschlag-Rechner (Eigenanteil) – KVA-PDF im Layout der Excel-Vorlage.",
-        "Pflegegrad als Auswahl; im Kostenvoranschlag für Hochrechnungen frei änderbar.",
-        "Kostenvoranschlag steht in der Dokumentenliste und wird mitunterschrieben.",
-        "Unterschriften-Durchgang zeigt jetzt das komplette Dokument (alle Seiten).",
-        "Unterschriften erscheinen jetzt direkt in der PDF-Vorschau.",
-        "Neues Stammblatt: automatisch befüllt, alle Felder ergänzbar (Seite 2 ausklappbar), Klientenbild einfügbar.",
-        "Einheitlicheres Design – optisch an die Sozialstation angeglichen.",
-        "Auswahl-Dropdowns (Familienstand, Konfession, Staatsangehörigkeit); Klientenbild bleibt im Entwurf gespeichert.",
-        "Klientenbild lässt sich auch nachträglich in eine fertige Stammblatt-PDF einsetzen.",
-        "Übersichtlichere Eingabemaske – Stammblatt in klar gegliederte Unter-Karten aufgeteilt.",
-        "Neue Checkliste Patientenaufnahme: editierbar, mitgeneriert; Rollstuhl u. a. werden übernommen.",
-        "ZIP-Export: Tagespflege als Einzeldateien im Ordner „Tagespflege“, der Klient bekommt genau eine zusammengeführte Gesamt-PDF.",
-        "Tagespflege-Vertrag: Gastdaten stehen jetzt sauber im Kundenkasten (wie bei der Sozialstation) statt leerer Linien."
+      { titel:"27.08.2026", gruppen:[
+        { area:"Sozialstation", icon:"🏠", items:[
+          "Einheitlicheres Design; kein Aufblitzen mehr vor dem Assistenten."
+        ]},
+        { area:"Tagespflege", icon:"☀️", items:[
+          "Neues Stammblatt: automatisch befüllt, alle Felder ergänzbar, Klientenbild einfügbar.",
+          "Kostenvoranschlag-Rechner (Eigenanteil); wird mitunterschrieben.",
+          "Besuchszeiten vereinfacht; Auswahl-Dropdowns; Optik an die Sozialstation angeglichen."
+        ]}
+      ]},
+      { titel:"25.08.2026", gruppen:[
+        { area:"Sozialstation", icon:"🏠", items:[
+          "Neue Hausarzt-Felder; zwei Telefonnummern je Bezugsperson.",
+          "SEPA-Gebühren mit Beträgen; „Eingaben zurücksetzen“ mit Sicherheitsabfrage."
+        ]},
+        { area:"Hausnotruf", icon:"🆘", items:[
+          "Setup übersichtlich in nummerierte Karten gegliedert."
+        ]}
       ]}
     ]
   };
 
   (function(){
     const KEY='mv_update_seen';
-    const secs=(UPDATE_INFO.sections||[]).filter(function(s){return s.items&&s.items.length;});
+    const rels=(UPDATE_INFO.releases||[]).map(function(r){return {titel:r.titel,offen:r.offen,gruppen:(r.gruppen||[]).filter(function(g){return g.items&&g.items.length;})};}).filter(function(r){return r.gruppen.length;});
     function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
     const ov=document.createElement('div');ov.className='mv-modal-ov';
     ov.innerHTML=
@@ -640,7 +659,7 @@
       +(UPDATE_INFO.version?'<span class="mv-ver">Stand: '+esc(UPDATE_INFO.version)+'</span>':'')+'</div>'
       +'<div class="mv-modal-body">'
       +(UPDATE_INFO.intro?'<p class="mv-modal-intro">'+esc(UPDATE_INFO.intro)+'</p>':'')
-      +secs.map(function(s){return '<div class="mv-sec"><div class="mv-sec-h"><span class="mv-ico">'+esc(s.icon||'•')+'</span>'+esc(s.area)+'</div><ul>'+s.items.map(function(i){return '<li>'+esc(i)+'</li>';}).join('')+'</ul></div>';}).join('')
+      +rels.map(function(r,idx){var inner=r.gruppen.map(function(g){return '<div class="mv-grp"><div class="mv-grp-h"><span class="mv-ico">'+esc(g.icon||'•')+'</span>'+esc(g.area||'')+'</div><ul>'+g.items.map(function(i){return '<li>'+esc(i)+'</li>';}).join('')+'</ul></div>';}).join('');return '<details class="mv-rel"'+((r.offen||idx===0)?' open':'')+'><summary>'+esc(r.titel||'')+'<span class="mv-chev">▸</span></summary>'+inner+'</details>';}).join('')
       +'</div>'
       +'<div class="mv-modal-foot"><button class="mv-btn" id="mvUpdateOk">Verstanden</button></div>'
       +'</div>';
@@ -660,7 +679,7 @@
       return tage <= (UPDATE_INFO.maxTageSichtbar||21);
     }
     var seen=null;try{seen=localStorage.getItem(KEY);}catch(e){}
-    if(UPDATE_INFO.version && seen!==UPDATE_INFO.version && secs.length && nochAktuell()){ setTimeout(open,350); }
+    if(UPDATE_INFO.version && seen!==UPDATE_INFO.version && rels.length && nochAktuell()){ setTimeout(open,350); }
   })();
   </script>
 </body>
