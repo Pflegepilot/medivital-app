@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.8.3 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.8.4 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -1951,7 +1951,10 @@ async function buildHnAntrag(){
   Begruendung_Gleichgewichtsstoerungen:!!c.hn_begr_gleichgewicht,
   Begruendung_Lagewechsel:!!c.hn_begr_lagewechsel,
   Begruendung_Pflegekraft_nicht_erreichbar:!!c.hn_begr_pflegekraft};
- return hnBuild(HN_ANTRAG_B64,tx,cb);
+ const pdf=await hnBuild(HN_ANTRAG_B64,tx,cb);
+ // Klient-Unterschrift auf die Linie „Unterschrift Versicherte/r" (unten rechts, Label bei y-top ~746) setzen
+ await hnPlaceSigs(pdf,'hn_antrag',[{page:1, who:'klient', x:322, yTop:743, w:182, h:26}]);
+ return pdf;
 }
 async function buildHnSepa2(){
  const {StandardFonts,PDFName,PDFString}=PDFLib;
