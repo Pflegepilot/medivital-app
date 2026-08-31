@@ -605,24 +605,31 @@
      Über "Was ist neu?" in der Fußzeile kann man ihn jederzeit erneut öffnen.
      ===================================================================== */
   const UPDATE_INFO = {
-    version: "2026-08-28",
+    version: "2026-08-30",
     maxTageSichtbar: 21,
     title: "Was ist neu?",
     intro: "Änderungen je Version – zum Aufklappen. Die neueste ist offen, ältere bei Bedarf antippen.",
     // Releases: neueste zuerst; nur das erste ist offen (offen:true). Pro Release Untergruppen je Bereich
     // (Sozialstation 🏠 / Tagespflege ☀️ / Hausnotruf 🆘) – jeweils nur, wenn es dort etwas Neues gibt.
     releases: [
-      { titel:"28.08.2026", offen:true, gruppen:[
+      { titel:"30.08.2026", offen:true, gruppen:[
+        { area:"Tagespflege", icon:"☀️", items:[
+          "Hellere Optik – Kopfzeile und Unterschriften-Durchgang jetzt so freundlich wie die Sozialstation.",
+          "Einwilligung zur Datenverarbeitung (02-1): neue Vorlage übernommen, füllt sich wie gewohnt automatisch.",
+          "Sauberere Dokumente: Adressköpfe wie im Vertrag (08/14), Daten ohne blaue Balken (09/10/11), Abtretung mit Tagespflege-Unterschrift.",
+          "Anpassungsausschluss (Anlage 6) jetzt komplett auf einer Seite; Widerrufsformular liegt als Blankovorlage bei.",
+          "Kostenvoranschlag & Antrag: Ort/Datum und offizieller Stempel ergänzt (Unterschrift neben dem Stempel).",
+          "Muster-Testbefüllung füllt jetzt das komplette Formular."
+        ]}
+      ]},
+      { titel:"28.08.2026", gruppen:[
         { area:"Sozialstation", icon:"🏠", items:[
           "Versicherung (gesetzlich/privat) als Dropdown im Abschnitt „Versicherung & Versorgung“."
         ]},
         { area:"Tagespflege", icon:"☀️", items:[
           "ZIP-Export: Tagespflege als Einzeldateien, der Klient bekommt genau eine Gesamt-PDF.",
           "Vertrag: Gastdaten stehen sauber im Kundenkasten (statt leerer Linien).",
-          "Neue Checkliste Patientenaufnahme: editierbar, automatisch befüllt, mitgeneriert.",
-          "Sauberere Dokumente: Adressköpfe wie im Vertrag (08/14), Daten ohne blaue Balken (09/10/11), Abtretung mit Tagespflege-Unterschrift.",
-          "Kostenvoranschlag & Antrag: Ort/Datum und offizieller Stempel ergänzt (Unterschrift über dem Stempel).",
-          "Muster-Testbefüllung füllt jetzt das komplette Formular."
+          "Neue Checkliste Patientenaufnahme: editierbar, automatisch befüllt, mitgeneriert."
         ]},
         { area:"Hausnotruf", icon:"🆘", items:[
           "Stammdatenblatt: neue Zeile „Versicherung“ (gesetzlich/privat) und „Pflegegrad“.",
