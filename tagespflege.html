@@ -252,12 +252,9 @@
    <div class="card actions">
     <button type="button" class="btn gold big" id="durchgang">&#9997; Unterschriften-Durchgang starten</button>
     <button type="button" class="btn green big" id="erzeugen">&#128230; Alle Unterlagen erzeugen</button>
-    <button type="button" class="btn ghost" id="entwurfSichern">Entwurf sichern</button>
-    <button type="button" class="btn ghost" id="entwurfLaden">Entwurf laden</button>
     <button type="button" class="btn link" id="muster">Musterdaten einf&uuml;llen (Test)</button>
-    <button type="button" class="btn link" id="protokollUm">Protokoll anzeigen</button>
     <div id="status">Bereit.</div>
-    <pre id="protokoll"></pre>
+    <pre id="protokoll" style="display:none"></pre>
    </div>
   </aside>
 
@@ -410,7 +407,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Es verlaesst nie ein Datum das Geraet – alles laeuft im Browser.
    ===================================================================== */
 
-const VERSION = "1.18.0";
+const VERSION = "1.18.1";
 const PDF_PFAD = "../pdf/";           // relativ zu app/index.html
 const DATEIEN_UEBERSPRINGEN = ["00_Gesamtsatz_Tagespflege_ausfuellbar.pdf"];
 
@@ -2459,14 +2456,6 @@ async function start() {
   $("durchgang2").addEventListener("click", startDurchgang);
   $("erzeugen").addEventListener("click", erzeugeUnterlagen);
   $("muster").addEventListener("click", musterFuellen);
-  $("entwurfSichern").addEventListener("click", () => { sichereEntwurf(); updateSummary(); updateDocStatus(); });
-  $("entwurfLaden").addEventListener("click", () => { ladeEntwurf(); updateSummary(); updateDocStatus(); kvaAktualisiere(); });
-  $("protokollUm").addEventListener("click", () => {
-    const p = $("protokoll");
-    const auf = p.style.display === "block";
-    p.style.display = auf ? "none" : "block";
-    $("protokollUm").textContent = auf ? "Protokoll anzeigen" : "Protokoll ausblenden";
-  });
 
   // Durchgang-Navigation
   $("dgClose").addEventListener("click", () => { dgSaveCurrent(); closeDurchgang(); updateDocStatus(); });
