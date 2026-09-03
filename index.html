@@ -605,14 +605,27 @@
      Über "Was ist neu?" in der Fußzeile kann man ihn jederzeit erneut öffnen.
      ===================================================================== */
   const UPDATE_INFO = {
-    version: "2026-08-30",
+    version: "2026-09-03",
     maxTageSichtbar: 21,
     title: "Was ist neu?",
     intro: "Änderungen je Version – zum Aufklappen. Die neueste ist offen, ältere bei Bedarf antippen.",
     // Releases: neueste zuerst; nur das erste ist offen (offen:true). Pro Release Untergruppen je Bereich
     // (Sozialstation 🏠 / Tagespflege ☀️ / Hausnotruf 🆘) – jeweils nur, wenn es dort etwas Neues gibt.
     releases: [
-      { titel:"30.08.2026", offen:true, gruppen:[
+      { titel:"03.09.2026", offen:true, gruppen:[
+        { area:"Sozialstation", icon:"🏠", items:[
+          "Fertige Unterlagen werden jetzt als ganz normale Datei heruntergeladen – kein Umweg mehr über das Teilen-/E-Mail-Menü auf dem iPad.",
+          "Startseite: die Kacheln heißen jetzt „Sozialstation-Bereich öffnen“ bzw. „Tagespflege-Bereich öffnen“.",
+          "Hausnotruf-Setup ist kein Prototyp mehr – die Kennzeichnung ist entfernt.",
+          "Alles läuft über das GitHub-Repo jetzt auch offline."
+        ]},
+        { area:"Tagespflege", icon:"☀️", items:[
+          "Alle PDFs werden jetzt als ganz normale Datei heruntergeladen – kein Teilen-/E-Mail-Menü mehr.",
+          "Seitenleiste aufgeräumt: „Entwurf sichern/laden“ und „Protokoll anzeigen“ entfernt.",
+          "Startauswahl mit „Zurück zur Startseite“; Stammblatt-Vorschau nach dem Hochladen."
+        ]}
+      ]},
+      { titel:"30.08.2026", gruppen:[
         { area:"Tagespflege", icon:"☀️", items:[
           "Neue Startauswahl: „Neue Aufnahme“, „Stammblatt-Foto nachtragen“ (Bild in eine fertige Stammblatt-PDF einsetzen) oder „Kostenvoranschlag berechnen“ (eigenständiger Rechner mit PDF-Erzeugung).",
           "Modernere Eingabefelder – abgerundet, mit eigenem Dropdown-Pfeil.",

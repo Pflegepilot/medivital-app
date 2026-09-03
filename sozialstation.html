@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.8.5 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.8.6 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -321,7 +321,7 @@ body.sz-none .wrap{visibility:hidden}
    <div class="card actions">
     <button class="btn primary big" id="startWalk">▶ Aufnahme-Durchgang starten</button>
     <button class="btn primary big" id="genZip" style="background:#1a6e3c" disabled title="Bitte zuerst alle Dokumente unterschreiben">📦 Unterlagen vorbereiten</button>
-    <button class="btn primary big" id="shareZip" style="display:none">📤 Teilen / Speichern</button>
+    <button class="btn primary big" id="shareZip" style="display:none">⬇️ Datei herunterladen</button>
     <div id="exportMsg" class="export-msg" style="display:none"></div>
     <details id="exportDiag" class="export-diag" style="display:none"><summary>Diagnose anzeigen</summary><div id="exportDiagBody"></div></details>
     <button class="btn ghost" id="fillSample">Muster befüllen (Test)</button>
@@ -1314,7 +1314,7 @@ async function prepareExport(){
   EXP.blob=res.blob;EXP.name=res.name;EXP.size=res.blob.size;EXP.label=res.label||'';
   try{EXP.file=new File([res.blob],res.name,{type:'application/zip'});}catch(e){EXP.file=null;}
   renderExportDiag();
-  showExportMsg('✓ Unterlagen sind bereit ('+fmtBytes(EXP.size)+'). Jetzt „Teilen / Speichern" wählen.','ok');
+  showExportMsg('✓ Unterlagen sind bereit ('+fmtBytes(EXP.size)+'). Jetzt „Datei herunterladen" wählen.','ok');
   if(shareBtn)shareBtn.style.display='block';
  }catch(err){
   EXP.error=(err&&err.message)?err.message:String(err);
@@ -1337,37 +1337,9 @@ function fallbackDownload(){
  showExportMsg('Dieses Gerät bietet weder das native Teilen-Menü noch einen direkten Download. Bitte die App in Safari öffnen oder auf einem anderen Gerät exportieren.','err');
 }
 function shareExport(){
- if(SHARING){showExportMsg('Teilen läuft bereits – einen Moment bitte …');return;}
  if(!EXP.blob){showExportMsg('Bitte zuerst „Unterlagen vorbereiten".','err');return;}
  EXP.error='';
- // Datei synchron FRISCH erzeugen – vermeidet veraltete/verworfene File-Referenzen auf iOS
- let file=EXP.file;
- try{file=new File([EXP.blob],EXP.name,{type:'application/zip'});EXP.file=file;}catch(e){/* auf gespeicherte Datei zurückfallen */}
- const shareFn=(typeof navigator!=='undefined'&&typeof navigator.share==='function')?navigator.share.bind(navigator):null;
- // a) Web Share bevorzugen, sobald grundsätzlich verfügbar.
- //    canShare wird nur als Hinweis genutzt (iOS/WebView liefert gelegentlich Fehlnegative);
- //    bei echtem Fehler fällt der .catch auf den Download zurück.
- if(shareFn&&file){
-  EXP.path='a) Teilen (Web Share)';showExportMsg('');
-  SHARING=true;
-  let p;
-  try{p=shareFn({files:[file],title:EXP.name});}
-  catch(e){
-   SHARING=false;EXP.error=(e&&e.message)?e.message:String(e);renderExportDiag();
-   showExportMsg('Natives Teilen nicht möglich – versuche Download …','err');fallbackDownload();return;
-  }
-  p.then(()=>{showExportMsg('✓ Teilen abgeschlossen.','ok');})
-   .catch(err=>{
-    if(err&&err.name==='AbortError'){showExportMsg('Teilen abgebrochen – nichts gespeichert.');}
-    else if(err&&err.name==='InvalidStateError'){showExportMsg('Teilen war noch aktiv – bitte erneut auf „Teilen / Speichern" tippen.');}
-    else{EXP.error=(err&&err.message)?err.message:String(err);renderExportDiag();
-     showExportMsg('Teilen nicht möglich ('+EXP.error+') – versuche Download …','err');fallbackDownload();}
-   })
-   .finally(()=>{SHARING=false;renderExportDiag();});
-  renderExportDiag();
-  return;
- }
- // b) klassischer Download (Desktop/Windows) bzw. Fallback
+ // Direkter Datei-Download (kein Teilen-/E-Mail-Umweg auf dem iPad)
  fallbackDownload();
 }
 function exportJson(){const payload={erstellt:new Date().toISOString(),stammdaten:state.text,merkmale:state.check,leistungen:state.leistungen};

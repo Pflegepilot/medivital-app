@@ -407,7 +407,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Es verlaesst nie ein Datum das Geraet – alles laeuft im Browser.
    ===================================================================== */
 
-const VERSION = "1.18.1";
+const VERSION = "1.18.2";
 const PDF_PFAD = "../pdf/";           // relativ zu app/index.html
 const DATEIEN_UEBERSPRINGEN = ["00_Gesamtsatz_Tagespflege_ausfuellbar.pdf"];
 
@@ -688,15 +688,11 @@ async function erzeugeEinzel(datei) {
 }
 
 async function teilePdf(bytes, name) {
+  // Direkter Datei-Download (kein Teilen-Menue/E-Mail-Umweg auf dem iPad)
   const blob = new Blob([bytes], { type: "application/pdf" });
-  const datei = new File([blob], name, { type: "application/pdf" });
-  if (navigator.canShare && navigator.canShare({ files: [datei] })) {
-    try { await navigator.share({ files: [datei], title: name }); return; }
-    catch (e) { if (e.name === "AbortError") return; }
-  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = name;
+  a.href = url; a.download = name; a.rel = "noopener";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
@@ -2181,22 +2177,10 @@ function dateiname(werte) {
 /* Export: erst ZIP bauen, dann im Nutzer-Gestus teilen                 */
 /* ------------------------------------------------------------------ */
 async function teileOderLade(blob, name) {
-  const datei = new File([blob], name, { type: "application/zip" });
-
-  if (navigator.canShare && navigator.canShare({ files: [datei] })) {
-    try {
-      await navigator.share({ files: [datei], title: name });
-      melde("Unterlagen geteilt: " + name, "fertig");
-      return;
-    } catch (e) {
-      if (e.name === "AbortError") { melde("Teilen abgebrochen.", ""); return; }
-      protokolliere("Web Share fehlgeschlagen: " + e.message);
-    }
-  }
-
+  // Direkter Datei-Download (kein Teilen-Menue/E-Mail-Umweg auf dem iPad)
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = name;
+  a.href = url; a.download = name; a.rel = "noopener";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   melde("Heruntergeladen: " + name, "fertig");
