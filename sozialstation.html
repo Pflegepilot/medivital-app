@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.8.6 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.10.0 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -321,6 +321,7 @@ body.sz-none .wrap{visibility:hidden}
    <div class="card actions">
     <button class="btn primary big" id="startWalk">▶ Aufnahme-Durchgang starten</button>
     <button class="btn primary big" id="genZip" style="background:#1a6e3c" disabled title="Bitte zuerst alle Dokumente unterschreiben">📦 Unterlagen vorbereiten</button>
+    <button class="btn ghost" id="genZipForce" style="display:none">Ohne Unterschrift fortfahren</button>
     <button class="btn primary big" id="shareZip" style="display:none">⬇️ Datei herunterladen</button>
     <div id="exportMsg" class="export-msg" style="display:none"></div>
     <details id="exportDiag" class="export-diag" style="display:none"><summary>Diagnose anzeigen</summary><div id="exportDiagBody"></div></details>
@@ -464,6 +465,7 @@ const SECTIONS=[
  {n:"11",title:"Privatleistungen (Vereinbarung)",ctx:"Privatleistungen-Vereinbarung",t:"privat"},
  {n:"12",title:"Verhinderungspflege (optional)",ctx:"Antrag § 39 SGB XI",t:"vhp"},
  {n:"13",title:"SEPA-Lastschriftmandat (optional)",ctx:"SEPA-Basislastschriftmandat",t:"sepa"},
+ {n:"Ü",title:"Übergabe-Notiz",ctx:"Kurzbericht für das Übergabebuch",t:"uebergabe"},
  {n:"14",title:"Unterschriften",t:"signature"},
 ];
 
@@ -623,7 +625,9 @@ function updateSignStatus(){docSigners().forEach(d=>{const b=document.getElement
  else if(n<d.who.length){b.textContent='teilweise';b.className='docsign-badge part';}
  else{b.textContent='signiert';b.className='docsign-badge done';}});
  const list=document.getElementById('docList');if(list)renderDocs();
- const zb=document.getElementById('genZip');if(zb){const ok=allSigned();zb.disabled=!ok;zb.title=ok?'':'Bitte zuerst alle Dokumente unterschreiben';}}
+ const ok=allSigned();
+ const zb=document.getElementById('genZip');if(zb){zb.disabled=!ok;zb.title=ok?'':'Bitte zuerst alle Dokumente unterschreiben';}
+ const zf=document.getElementById('genZipForce');if(zf)zf.style.display=ok?'none':'block';}
 
 const PRIVAT=[
  {k:'p1a',nr:'1',name:'Hausnotruf',mode:'monatlich',preis:'46,90 €'},
@@ -811,6 +815,143 @@ function extra1Block(){const box=el('div');
   .forEach(([k,l])=>{const fdef={k:k,l:l,wide:(k==='besonderes')};row.appendChild(textField(fdef));});
  row.style.marginTop='10px';box.appendChild(row);
  return box;}
+/* ===== Übergabe-Notiz (Kurzbericht fürs Übergabebuch, rein lokal aus den Aufnahmedaten) ===== */
+function ueAlter(geb){const m=/(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(geb||'');if(!m)return '';
+ const g=new Date(+m[3],+m[2]-1,+m[1]);if(isNaN(g.getTime()))return '';
+ const h=new Date();let a=h.getFullYear()-g.getFullYear();const md=h.getMonth()-g.getMonth();
+ if(md<0||(md===0&&h.getDate()<g.getDate()))a--;return (a>0&&a<130)?a+' J.':'';}
+function uePgText(){const p=(state.text.pflegegrad||'').trim();
+ if(!p)return '';if(p==='Nein')return 'kein Pflegegrad';if(p==='Überleitung')return 'PG in Überleitung';
+ if(/^[1-5]$/.test(p))return 'PG '+p;return p;}
+function ueNachname(){const n=(state.text.pers_name_vorname||'').trim();if(!n)return '';return n.split(',')[0].trim();}
+function ueBezeichnung(){const nach=ueNachname();const a=state.text.ue_anrede||'';
+ if(a&&nach)return a+' '+nach;if(nach)return nach;return 'die pflegebedürftige Person';}
+function ueLeistungOrder(){const o=[];CATALOG.forEach(g=>g.items.forEach(([k])=>{if(state.leistungen.some(l=>l.key===k))o.push(k);}));return o;}
+function ueArt(){let gp=false,bp=false;
+ state.leistungen.forEach(l=>{const g=LGROUP[l.key];if(g==='Behandlungspflege')bp=true;else if(g)gp=true;});
+ if(gp&&bp)return 'grund- und behandlungspflegerisch';if(bp)return 'behandlungspflegerisch';if(gp)return 'grundpflegerisch';return 'pflegerisch';}
+function ueKadenz(){const days=['mo','di','mi','do','fr','sa','so'];const set={};
+ state.leistungen.forEach(l=>days.forEach(d=>{if(l.cols&&l.cols[d])set[d]=1;}));
+ const n=Object.keys(set).length;
+ if(n===7)return 'täglich';if(n===1)return 'einmal wöchentlich';if(n===2)return 'zweimal wöchentlich';
+ if(n===3)return 'dreimal wöchentlich';if(n>=4)return n+'-mal wöchentlich';
+ return state.leistungen.some(l=>l.cols&&l.cols.bed)?'bei Bedarf':'regelmäßig';}
+function ueFreq(cols){cols=cols||{};
+ const tage=[['mo','Mo'],['di','Di'],['mi','Mi'],['do','Do'],['fr','Fr'],['sa','Sa'],['so','So']].filter(([k])=>cols[k]);
+ let tagTxt='';if(tage.length===7)tagTxt='täglich';else if(tage.length)tagTxt=tage.map(([,l])=>l).join('/');
+ const zeiten=[['frueh','früh'],['mittag','mittags'],['spaet','spät'],['nacht','nachts']].filter(([k])=>cols[k]).map(([,l])=>l);
+ const extra=[];if(cols.vz)extra.push('14-tägl.');if(cols.bed)extra.push('bei Bedarf');
+ const teile=[];if(tagTxt)teile.push(tagTxt);if(zeiten.length)teile.push(zeiten.join('/'));if(extra.length)teile.push(extra.join(', '));
+ return teile.join(' · ')||'nach Absprache';}
+function ueAufzaehlung(arr){arr=arr.filter(Boolean);if(!arr.length)return '';if(arr.length===1)return arr[0];
+ return arr.slice(0,-1).join(', ')+' sowie '+arr[arr.length-1];}
+var UE_RISK_SATZ={demenz:'Es besteht eine demenzielle Symptomatik.',sturzgefahr:'Die Sturzgefahr ist erhöht.',
+ diabetes:'Es liegt ein Diabetes mellitus vor.',insulinpfl_diab:'Der Diabetes ist insulinpflichtig.',
+ blutverduenner:'Es wird eine blutverdünnende Medikation eingenommen.',dekubitusgefahr:'Es besteht eine Dekubitusgefahr.',
+ exsikkosegefahr:'Es besteht eine Exsikkosegefahr.',kontrakturen:'Es liegen Kontrakturen vor.',
+ herzschrittmacher:'Ein Herzschrittmacher ist vorhanden.',peg_sonde:'Eine PEG-Sonde ist vorhanden.',
+ blasenkatheter:'Ein Blasenkatheter ist vorhanden.',suprapub_katheter:'Ein suprapubischer Katheter ist vorhanden.',
+ fixierung:'Eine Fixierung ist erforderlich.',infektionskrankheiten:'Es liegt eine Infektionskrankheit vor.'};
+var UE_BOOK={leist_einstufung:'die Einstufung',leist_hoeherstufung:'eine Höherstufung',leist_betreuungsleistung:'Betreuungsleistungen',leist_verhinderungspflege:'Verhinderungspflege',leist_rezeptmanagement:'Rezeptmanagement'};
+function baueUebergabeFliesstext(){
+ const t=state.text,c=state.check,S=[];
+ const bez=ueBezeichnung();
+ // 1) Eröffnungssatz
+ let op=bez+' wird';
+ if(t.erster_pflegeeinsatz)op+=' ab dem '+t.erster_pflegeeinsatz;
+ if(state.leistungen.length)op+=' '+ueKadenz()+' '+ueArt();
+ op+=' versorgt.';S.push(op);
+ // 2) Diagnosen (Freitext)
+ if(t.pflegediagnosen&&t.pflegediagnosen.trim()){let d=t.pflegediagnosen.trim();if(!/[.!?]$/.test(d))d+='.';S.push('Als Diagnosen liegen vor: '+d);}
+ // 3) Risiko-/Symptom-Sätze (gemappt)
+ const rest=[];
+ RISIKO.forEach(([k,l])=>{if(c['risiko_'+k+'_ja']){if(UE_RISK_SATZ[k])S.push(UE_RISK_SATZ[k]);else rest.push(l);}});
+ if(rest.length)S.push('Weitere Risikofaktoren: '+ueAufzaehlung(rest)+'.');
+ // 4) Leistungen im Rahmen der Versorgung
+ const ls=ueLeistungOrder().map(k=>LNAME[k]);
+ if(ls.length)S.push('Im Rahmen der Versorgung '+(ls.length===1?'erfolgt':'erfolgen')+' '+ueAufzaehlung(ls)+'.');
+ // 5) Hilfsmittel
+ const hmV=[],hmB=[];HILFSMITTEL.forEach(([k,l])=>{if(c['hm_'+k+'_vorhanden'])hmV.push(l);else if(c['hm_'+k+'_benoetigt'])hmB.push(l);});
+ if(hmV.length&&hmB.length)S.push('An Hilfsmitteln '+(hmV.length>1?'sind':'ist')+' '+ueAufzaehlung(hmV)+' vorhanden; '+ueAufzaehlung(hmB)+' '+(hmB.length>1?'werden':'wird')+' benötigt.');
+ else if(hmV.length)S.push('An Hilfsmitteln '+(hmV.length>1?'sind':'ist')+' '+ueAufzaehlung(hmV)+' vorhanden.');
+ else if(hmB.length)S.push('An Hilfsmitteln '+(hmB.length>1?'werden':'wird')+' '+ueAufzaehlung(hmB)+' benötigt.');
+ // 6) Bezugsperson & Zugang
+ if(t.ang_name){let b=t.ang_name.trim();const zus=[];if(t.ang_beziehung)zus.push(t.ang_beziehung);if(t.ang_telefon)zus.push('Tel. '+t.ang_telefon);
+  S.push('Als Bezugsperson steht '+b+(zus.length?' ('+zus.join(', ')+')':'')+' zur Verfügung.');}
+ if(t.tourhinweis&&t.tourhinweis.trim()){let z=t.tourhinweis.trim();if(!/[.!?]$/.test(z))z+='.';S.push('Zugang/Hinweise: '+z);}
+ // 7) Besonderheiten
+ if(t.bemerkungen&&t.bemerkungen.trim()){let bm=t.bemerkungen.trim();if(!/[.!?]$/.test(bm))bm+='.';S.push(bm);}
+ // 8) Standard-Schlusssatz
+ S.push('Die pflegerische Versorgung wird entsprechend den individuellen Wünschen und Bedürfnissen von '+bez+' durchgeführt.');
+ // 9) Zusätzlich gebuchte Leistungen
+ const book=[];Object.keys(UE_BOOK).forEach(k=>{if(c[k])book.push(UE_BOOK[k]);});
+ if(state.vhpEnabled&&book.indexOf('Verhinderungspflege')<0)book.push('Verhinderungspflege');
+ if(book.length)S.push('Zusätzlich '+(book.length===1?'wurde':'wurden')+' '+ueAufzaehlung(book)+' gebucht.');
+ const pg=uePgText();const kopf='ÜBERGABE – NEUAUFNAHME (Stand '+fmtDate()+')'+(pg?' · '+pg:'')+(t.abr_kostentraeger?' · '+t.abr_kostentraeger:'');
+ return kopf+'\n\n'+S.join(' ');}
+function baueUebergabeStichpunkte(){
+ const t=state.text,c=state.check,L=[];
+ L.push('ÜBERGABE – NEUAUFNAHME (Stand '+fmtDate()+')');L.push('');
+ const kl=[];const nm=(t.pers_name_vorname||'').trim();const alt=ueAlter(t.pers_geburtsdatum);
+ if(nm||alt)kl.push((nm+(alt?' ('+alt+')':'')).trim());
+ const pg=uePgText();if(pg)kl.push(pg+(t.abr_pflegegrad_seit?(' seit '+t.abr_pflegegrad_seit):''));
+ const vers=[];if(t.versicherungsart)vers.push(t.versicherungsart==='gesetzlich'?'gesetzl.':t.versicherungsart);
+ if(t.abr_kostentraeger)vers.push(t.abr_kostentraeger);if(vers.length)kl.push(vers.join(', '));
+ if(kl.length)L.push('Klient: '+kl.join(' · '));
+ if(t.erster_pflegeeinsatz)L.push('Erster Einsatz: '+t.erster_pflegeeinsatz);
+ L.push('');
+ if(t.pflegediagnosen&&t.pflegediagnosen.trim())L.push('Diagnosen: '+t.pflegediagnosen.trim());
+ const ris=RISIKO.filter(([k])=>c['risiko_'+k+'_ja']).map(([,l])=>l);
+ if(ris.length)L.push('Risiken: '+ris.join(', '));
+ if(state.leistungen.length){L.push('');L.push('Versorgung:');
+  ueLeistungOrder().forEach(k=>{const Ls=state.leistungen.find(l=>l.key===k);L.push('• '+LNAME[k]+' – '+ueFreq(Ls.cols));});}
+ const folge=[];
+ const hm=[];HILFSMITTEL.forEach(([k,l])=>{if(c['hm_'+k+'_vorhanden'])hm.push(l);else if(c['hm_'+k+'_benoetigt'])hm.push(l+' (benötigt)');});
+ if(hm.length)folge.push('Hilfsmittel: '+hm.join(', '));
+ const bez=[];
+ if(t.ang_name){let b=t.ang_name;if(t.ang_beziehung)b+=' ('+t.ang_beziehung+')';if(t.ang_telefon)b+=' '+t.ang_telefon;bez.push(b);}
+ if(t.ang2_name){let b=t.ang2_name;if(t.ang2_bez)b+=' ('+t.ang2_bez+')';if(t.ang2_tel)b+=' '+t.ang2_tel;bez.push(b);}
+ if(bez.length)folge.push('Bezugsperson: '+bez.join(' · '));
+ if(t.tourhinweis&&t.tourhinweis.trim())folge.push('Zugang: '+t.tourhinweis.trim());
+ if(t.bemerkungen&&t.bemerkungen.trim())folge.push('Besonderheiten: '+t.bemerkungen.trim());
+ if(folge.length){L.push('');folge.forEach(x=>L.push(x));}
+ return L.join('\n');}
+function baueUebergabeText(){return (state.ue_format==='stich')?baueUebergabeStichpunkte():baueUebergabeFliesstext();}
+function uebergabeBlock(){
+ const box=el('div');
+ box.appendChild(el('p','note','Kurzer Übergabebericht aus den Aufnahmedaten – automatisch erzeugt und frei bearbeitbar. Bleibt lokal auf dem Gerät. Mit „Kopieren“ direkt ins Übergabebuch übernehmen.'));
+ const bar=el('div');bar.style.cssText='display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px';
+ // Anrede
+ const anrWrap=el('label');anrWrap.style.cssText='display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)';
+ anrWrap.appendChild(document.createTextNode('Anrede'));
+ const anr=el('select');anr.style.cssText='border-radius:8px;padding:6px 8px';
+ [['','–'],['Herr','Herr'],['Frau','Frau']].forEach(([v,tx])=>{const o=el('option',null,tx);o.value=v;anr.appendChild(o);});
+ anr.value=state.text.ue_anrede||'';anrWrap.appendChild(anr);bar.appendChild(anrWrap);
+ // Format-Umschalter
+ const fmtWrap=el('label');fmtWrap.style.cssText='display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)';
+ fmtWrap.appendChild(document.createTextNode('Format'));
+ const fmt=el('select');fmt.style.cssText='border-radius:8px;padding:6px 8px';
+ [['flie','Fließtext'],['stich','Stichpunkte']].forEach(([v,tx])=>{const o=el('option',null,tx);o.value=v;fmt.appendChild(o);});
+ fmt.value=state.ue_format||'flie';fmtWrap.appendChild(fmt);bar.appendChild(fmtWrap);
+ const gen=el('button','btn');gen.type='button';gen.textContent='↻ Neu erzeugen';
+ const cop=el('button','btn primary');cop.type='button';cop.textContent='📋 Kopieren';
+ bar.appendChild(gen);bar.appendChild(cop);box.appendChild(bar);
+ const ta=el('textarea');ta.id='ueText';
+ ta.style.cssText='width:100%;min-height:300px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;white-space:pre-wrap';
+ if(!state._ueEdited||!state.text.uebergabe)state.text.uebergabe=baueUebergabeText();
+ ta.value=state.text.uebergabe;
+ function regen(){state._ueEdited=false;state.text.uebergabe=baueUebergabeText();ta.value=state.text.uebergabe;}
+ ta.addEventListener('focus',()=>{if(!state._ueEdited){const f=baueUebergabeText();if(f!==ta.value){state.text.uebergabe=f;ta.value=f;}}});
+ ta.addEventListener('input',()=>{state.text.uebergabe=ta.value;state._ueEdited=true;});
+ anr.addEventListener('change',()=>{state.text.ue_anrede=anr.value;if(!state._ueEdited)regen();});
+ fmt.addEventListener('change',()=>{state.ue_format=fmt.value;regen();});
+ gen.addEventListener('click',()=>{regen();toast('Übergabe-Notiz neu erzeugt');});
+ cop.addEventListener('click',async()=>{const txt=ta.value;let ok=false;
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(txt);ok=true;}}catch(e){}
+  if(!ok){try{ta.focus();ta.select();ok=document.execCommand('copy');ta.setSelectionRange(ta.value.length,ta.value.length);}catch(e){}}
+  toast(ok?'Übergabe-Notiz kopiert':'Kopieren nicht möglich – bitte Text manuell markieren');});
+ box.appendChild(ta);
+ return box;}
 function render(){form.innerHTML='';
  if(!state.szenario){showTriage();return;}
  const _sz=SZENARIEN[state.szenario];const _szN=_sz?_sz.sections:null;
@@ -830,6 +971,7 @@ function render(){form.innerHTML='';
   else if(s.t==='sepa')body.appendChild(sepaBlock());
   else if(s.t==='ang3')body.appendChild(ang3Block());
   else if(s.t==='extra1')body.appendChild(extra1Block());
+  else if(s.t==='uebergabe')body.appendChild(uebergabeBlock());
   else if(s.t==='signature'){return;}
   else{const row=el('div','row');s.fields.filter(f=>!(f.hideSz&&f.hideSz.includes(state.szenario))).forEach(f=>{if(f.t==='time4')row.appendChild(timeBlock());else if(f.t==='pflegegrad')row.appendChild(pgField(f));else if(f.t==='versicherung')row.appendChild(versField(f));else row.appendChild(textField(f));});body.appendChild(row);}
   sec.appendChild(body);form.appendChild(sec);});
@@ -1239,6 +1381,9 @@ async function buildExportZip(){
   {const vp=await buildVollmacht();mvFolder.file(String(mi).padStart(2,'0')+'_Vollmacht-Kostentraeger.pdf',await vp.save());mi++;}
   if(state.beratungEnabled){const bp=await buildBV();mvFolder.file(String(mi).padStart(2,'0')+'_Nachweis_Beratungseinsatz_37_3.pdf',await bp.save());mi++;}
   if(docEnabled('hn_schlue')){const kp=await buildHnSchlue();mvFolder.file(String(mi).padStart(2,'0')+'_Schluesselprotokoll.pdf',await kp.save());mi++;}
+  // Übergabe-Notiz als Textdatei (nur MediVital-intern, nicht im Klient-Ordner)
+  {const ut=(state.text.uebergabe&&state.text.uebergabe.trim())?state.text.uebergabe:baueUebergabeText();
+   if(ut&&ut.trim()){mvFolder.file(String(mi).padStart(2,'0')+'_Uebergabe-Notiz.txt','﻿'+ut);mi++;}}
   // --- Klient: eine kombinierte PDF (nicht bearbeitbar: Formulare werden flachgelegt) ---
   // MediVital-Set oben bleibt bewusst bearbeitbar; nur die Klientenmappe wird fixiert.
   const flattenSafe=(doc)=>{try{doc.getForm().flatten({updateFieldAppearances:false});}
@@ -2254,6 +2399,7 @@ document.getElementById('stepDownload').addEventListener('click',()=>generate(wa
 
 document.getElementById('fillSample').addEventListener('click',fillSample);
 document.getElementById('genZip').addEventListener('click',prepareExport);
+document.getElementById('genZipForce').addEventListener('click',function(){if(!allSigned()&&!confirm('Es sind noch nicht alle Unterschriften vorhanden. Unterlagen trotzdem – ohne die fehlenden Unterschriften – erstellen?'))return;prepareExport();});
 document.getElementById('shareZip').addEventListener('click',shareExport);
 function confirmModal(opts){
  const o=opts||{};
