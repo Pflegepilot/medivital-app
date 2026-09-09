@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.10.1 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.10.3 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -1413,6 +1413,7 @@ async function buildExportZip(){
    spCp.forEach(p=>klOut.addPage(p));
   }
   {const vp=await buildVollmacht();flattenSafe(vp);const vpCp=await klOut.copyPages(vp,vp.getPages().map((_,i)=>i));vpCp.forEach(p=>klOut.addPage(p));}
+  if(docEnabled('hn_schlue')){const kp=await buildHnSchlue();flattenSafe(kp);const kpCp=await klOut.copyPages(kp,kp.getPages().map((_,i)=>i));kpCp.forEach(p=>klOut.addPage(p));}
   klFolder.file('Klientenmappe_komplett.pdf',await klOut.save());
   // --- Download ---
   const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
@@ -2126,8 +2127,10 @@ async function buildHnSchlue(){
  const helv=await pdf.embedFont(StandardFonts.Helvetica);
  const draw=(txt,x,base,size)=>{ if(txt!==undefined&&txt!==null&&String(txt)!=='') page.drawText(String(txt),{x:x,y:H-base,size:size||10.5,font:helv}); };
  const X=(on,base)=>{ if(on) page.drawText('X',{x:164,y:H-base,size:11,font:helv}); };
- const nach=(t.pers_name_vorname||'').split(',')[0].trim();
- const vor=(t.pers_name_vorname||'').includes(',')?t.pers_name_vorname.split(',').slice(1).join(',').trim():'';
+ // Name in Nachname/Vorname aufteilen: "Nachname, Vorname" (Komma) ODER "Nachname Vorname" (Leerzeichen, gemäß Feld-Label "Name, Vorname")
+ const _nm=(t.pers_name_vorname||'').trim();let nach='',vor='';
+ if(_nm.includes(',')){const p=_nm.split(',');nach=p[0].trim();vor=p.slice(1).join(',').trim();}
+ else{const p=_nm.split(/\s+/).filter(Boolean);if(p.length>=2){nach=p[0];vor=p.slice(1).join(' ');}else{nach=_nm;}}
  // ---- Übergabe ----
  draw(t.hn_schl_ueb_am||fmtDate(), 168, 118);
  draw(vor, 168, 175.5);
