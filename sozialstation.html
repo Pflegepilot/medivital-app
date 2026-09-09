@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MediVital · Klientenaufnahme v26.10.0 (offline)</title>
+<title>MediVital · Klientenaufnahme v26.10.1 (offline)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script>
 (function(){
@@ -320,8 +320,7 @@ body.sz-none .wrap{visibility:hidden}
    </div>
    <div class="card actions">
     <button class="btn primary big" id="startWalk">▶ Aufnahme-Durchgang starten</button>
-    <button class="btn primary big" id="genZip" style="background:#1a6e3c" disabled title="Bitte zuerst alle Dokumente unterschreiben">📦 Unterlagen vorbereiten</button>
-    <button class="btn ghost" id="genZipForce" style="display:none">Ohne Unterschrift fortfahren</button>
+    <button class="btn primary big" id="genZip" style="background:#1a6e3c">📦 Unterlagen vorbereiten</button>
     <button class="btn primary big" id="shareZip" style="display:none">⬇️ Datei herunterladen</button>
     <div id="exportMsg" class="export-msg" style="display:none"></div>
     <details id="exportDiag" class="export-diag" style="display:none"><summary>Diagnose anzeigen</summary><div id="exportDiagBody"></div></details>
@@ -625,9 +624,7 @@ function updateSignStatus(){docSigners().forEach(d=>{const b=document.getElement
  else if(n<d.who.length){b.textContent='teilweise';b.className='docsign-badge part';}
  else{b.textContent='signiert';b.className='docsign-badge done';}});
  const list=document.getElementById('docList');if(list)renderDocs();
- const ok=allSigned();
- const zb=document.getElementById('genZip');if(zb){zb.disabled=!ok;zb.title=ok?'':'Bitte zuerst alle Dokumente unterschreiben';}
- const zf=document.getElementById('genZipForce');if(zf)zf.style.display=ok?'none':'block';}
+ const zb=document.getElementById('genZip');if(zb){zb.disabled=false;zb.title='';}}
 
 const PRIVAT=[
  {k:'p1a',nr:'1',name:'Hausnotruf',mode:'monatlich',preis:'46,90 €'},
@@ -785,27 +782,35 @@ function ang3Block(){
  return box;}
 function extra1Block(){const box=el('div');
  const groups=[
-  ['Antrag gestellt durch',[['antrag_pd','Pflegedienst'],['antrag_angehoerige','Angehörige'],['antrag_kh','Krankenhaus / Sozialdienst']]],
-  ['Leistungen beantragt',[['leist_einstufung','Einstufung'],['leist_hoeherstufung','Höherstufung'],['leist_betreuungsleistung','Betreuungsleistung'],['leist_verhinderungspflege','Verhinderungspflege'],['leist_rezeptmanagement','Rezeptmanagement']]],
-  ['Organisation der Versorgung',[['org_pd_vmgmt','durch Pflegedienst / Versorgungsmanagement'],['org_angehoerige','durch Angehörige']]],
-  ['Verordnung häuslicher Krankenpflege liegt vor',[['verordnung_ja','ja'],['verordnung_nein','nein']]],
-  ['Zuzahlungsbefreiung',[['zuzahlung_ja','ja'],['zuzahlung_nein','nein']]],
-  ['Entlastungsbetrag § 45b SGB XI',[['entlastung_ja','wird genutzt'],['entlastung_restanspruch_nein','kein Restanspruch']],['entlastung_restanspruch','Restanspruch','z. B. 125,00 €']],
-  ['Verhinderungspflege § 39 SGB XI',[['p39_ja','wird genutzt'],['p39_restanspruch_nein','kein Restanspruch']],['p39_restanspruch','Restanspruch','z. B. 806,00 €']],
-  ['Schriftverkehr bevorzugt per',[['schriftverkehr_post','Post'],['schriftverkehr_email','E-Mail']]],
-  ['Sonstiges',[['sonst_informationen','Sonstige Informationen gewünscht'],['einladungen','Einladungen zu Veranstaltungen gewünscht']]]];
+  {title:'Leistungen beantragt',sub:'Was wird beantragt? (z. B. Erst- oder Höherstufung)',items:[['leist_einstufung','Einstufung (Erstantrag)'],['leist_hoeherstufung','Höherstufung'],['leist_betreuungsleistung','Betreuungsleistung'],['leist_verhinderungspflege','Verhinderungspflege'],['leist_rezeptmanagement','Rezeptmanagement']]},
+  {title:'Antrag gestellt durch',sub:'Wer stellt den Antrag?',items:[['antrag_pd','Pflegedienst'],['antrag_angehoerige','Angehörige'],['antrag_kh','Krankenhaus / Sozialdienst']]},
+  {title:'Organisation der Versorgung',items:[['org_pd_vmgmt','durch Pflegedienst / Versorgungsmanagement'],['org_angehoerige','durch Angehörige']]},
+  {title:'Verordnung häuslicher Krankenpflege liegt vor',items:[['verordnung_ja','ja'],['verordnung_nein','nein']]},
+  {title:'Zuzahlungsbefreiung',items:[['zuzahlung_ja','ja'],['zuzahlung_nein','nein']]},
+  {title:'Entlastungsbetrag § 45b SGB XI',items:[['entlastung_ja','Leistung wird genutzt']],rest:{amt:'entlastung_restanspruch',nein:'entlastung_restanspruch_nein',ph:'z. B. 125,00 €'}},
+  {title:'Verhinderungspflege § 39 SGB XI',items:[['p39_ja','Leistung wird genutzt']],rest:{amt:'p39_restanspruch',nein:'p39_restanspruch_nein',ph:'z. B. 806,00 €'}},
+  {title:'Schriftverkehr bevorzugt per',items:[['schriftverkehr_post','Post'],['schriftverkehr_email','E-Mail']]},
+  {title:'Sonstiges',items:[['sonst_informationen','Sonstige Informationen gewünscht'],['einladungen','Einladungen zu Veranstaltungen gewünscht']]}];
  const grid=el('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;align-items:start;';
- groups.forEach(([title,items,tx])=>{
+ groups.forEach(g=>{
   const card=el('div','hn-kont');
-  card.appendChild(el('div','hn-kont-head',title));
-  items.forEach(([k,l])=>{const lab=el('label','chk');const cb=el('input');cb.type='checkbox';cb.checked=!!state.check[k];
+  card.appendChild(el('div','hn-kont-head',g.title));
+  if(g.sub){const s=el('div',null,g.sub);s.style.cssText='font-size:12px;color:var(--muted);margin:-4px 0 8px;line-height:1.3';card.appendChild(s);}
+  g.items.forEach(([k,l])=>{const lab=el('label','chk');const cb=el('input');cb.type='checkbox';cb.checked=!!state.check[k];
    cb.addEventListener('change',()=>state.check[k]=cb.checked);lab.appendChild(cb);lab.appendChild(el('span',null,l));card.appendChild(lab);});
-  if(tx){const[tk,tl,tp]=tx;const lab=el('label','chk');lab.style.cursor='default';
-   lab.appendChild(el('span',null,tl+':'));
-   const i=el('input');i.type='text';i.placeholder=tp||'';i.value=state.text[tk]||'';
-   i.style.cssText='width:110px;padding:5px 8px;font-size:13px;margin-left:auto;';
-   i.addEventListener('input',()=>{state.text[tk]=i.value;});
-   lab.appendChild(i);card.appendChild(lab);}
+  if(g.rest){const r=g.rest;
+   const hint=el('div',null,'Restanspruch dieses Jahr – Betrag eintragen <b>oder</b> „kein Restanspruch“ ankreuzen.');
+   hint.style.cssText='font-size:12px;color:var(--muted);margin:6px 0 4px;line-height:1.3';card.appendChild(hint);
+   const amtLab=el('label','chk');amtLab.style.cursor='default';amtLab.appendChild(el('span',null,'Restanspruch:'));
+   const amt=el('input');amt.type='text';amt.placeholder=r.ph||'';amt.value=state.text[r.amt]||'';
+   amt.style.cssText='width:110px;padding:5px 8px;font-size:13px;margin-left:auto;';
+   amtLab.appendChild(amt);card.appendChild(amtLab);
+   const neinLab=el('label','chk');const nein=el('input');nein.type='checkbox';nein.checked=!!state.check[r.nein];
+   neinLab.appendChild(nein);neinLab.appendChild(el('span',null,'kein Restanspruch'));card.appendChild(neinLab);
+   const syncDisable=()=>{amt.disabled=nein.checked;amt.style.opacity=nein.checked?'.5':'1';};
+   amt.addEventListener('input',()=>{state.text[r.amt]=amt.value;if(amt.value.trim()&&nein.checked){nein.checked=false;state.check[r.nein]=false;syncDisable();}});
+   nein.addEventListener('change',()=>{state.check[r.nein]=nein.checked;if(nein.checked){amt.value='';state.text[r.amt]='';}syncDisable();});
+   syncDisable();}
   grid.appendChild(card);});
  box.appendChild(grid);
  box.appendChild(el('div','csub','Ergänzende Angaben'));
@@ -1442,6 +1447,19 @@ function showExportMsg(txt,kind){
  el.textContent=txt||'';
  el.style.display=txt?'block':'none';
  el.className='export-msg'+(kind?(' '+kind):'');
+}
+function missingSignList(){return docSigners().filter(d=>d.who.some(w=>!state.sigs[d.id+'_'+w])).map(d=>d.title);}
+function onExportClick(){
+ // "Unterlagen vorbereiten" ist immer aktiv. Fehlen Unterschriften, kommt eine Meldung
+ // mit den offenen Dokumenten und einem bewussten "Ohne Unterschrift fortfahren".
+ if(allSigned()){prepareExport();return;}
+ const em=document.getElementById('exportMsg');if(!em){prepareExport();return;}
+ const miss=missingSignList();
+ em.className='export-msg';em.style.display='block';
+ em.innerHTML='<div style="border:1.5px solid #e0a93b;background:#fff7e8;border-radius:10px;padding:11px 13px;color:#7a4e00;font-weight:600">'
+  +'⚠️ Es fehlen noch Unterschriften.<div style="font-weight:500;margin:6px 0 0;font-size:13px">Offen: '+miss.join(', ')+'.</div>'
+  +'<button type="button" id="genZipForceInline" class="btn" style="margin-top:11px;background:#7a4e00;color:#fff;border-color:#7a4e00">Ohne Unterschrift fortfahren</button></div>';
+ const fb=document.getElementById('genZipForceInline');if(fb)fb.addEventListener('click',prepareExport);
 }
 async function prepareExport(){
  const btn=document.getElementById('genZip');const shareBtn=document.getElementById('shareZip');
@@ -2398,8 +2416,7 @@ document.getElementById('stepNext').addEventListener('click',async()=>{
 document.getElementById('stepDownload').addEventListener('click',()=>generate(walk.order[walk.i]));
 
 document.getElementById('fillSample').addEventListener('click',fillSample);
-document.getElementById('genZip').addEventListener('click',prepareExport);
-document.getElementById('genZipForce').addEventListener('click',function(){if(!allSigned()&&!confirm('Es sind noch nicht alle Unterschriften vorhanden. Unterlagen trotzdem – ohne die fehlenden Unterschriften – erstellen?'))return;prepareExport();});
+document.getElementById('genZip').addEventListener('click',onExportClick);
 document.getElementById('shareZip').addEventListener('click',shareExport);
 function confirmModal(opts){
  const o=opts||{};
